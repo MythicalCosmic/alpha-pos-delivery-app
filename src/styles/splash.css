@@ -1,0 +1,65 @@
+/* ===== Smart Food — splash ===== */
+.splash {
+  position: absolute; inset: 0; z-index: 80;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background:
+    radial-gradient(120% 90% at 50% 0%, #2a1d6e 0%, transparent 55%),
+    radial-gradient(120% 90% at 50% 110%, #45174d 0%, transparent 55%),
+    #100b28;
+  overflow: hidden;
+  animation: splashOut .6s ease forwards;
+  animation-delay: 2.7s;
+}
+@keyframes splashOut { to { opacity: 0; visibility: hidden; transform: scale(1.06); } }
+
+/* aurora blobs */
+.splash .aura { position: absolute; border-radius: 50%; filter: blur(46px); opacity: .55; }
+.splash .aura.a { width: 280px; height: 280px; background: #ff4d8d; top: -60px; left: -60px; animation: float1 6s ease-in-out infinite; }
+.splash .aura.b { width: 240px; height: 240px; background: #7c4dff; bottom: -40px; right: -50px; animation: float2 7s ease-in-out infinite; }
+@keyframes float1 { 50% { transform: translate(30px, 40px) scale(1.1); } }
+@keyframes float2 { 50% { transform: translate(-30px, -30px) scale(1.08); } }
+
+/* orbiting food dots */
+.splash .orbit { position: absolute; width: 300px; height: 300px; animation: spin 14s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.splash .orbit .od { position: absolute; width: 38px; height: 38px; border-radius: 13px; overflow: hidden; box-shadow: 0 12px 26px -8px rgba(0,0,0,.5); opacity: 0; animation: odIn .6s cubic-bezier(.34,1.56,.64,1) forwards; }
+.splash .orbit .od:nth-child(1) { top: 0; left: 50%; margin-left: -19px; animation-delay: .5s; }
+.splash .orbit .od:nth-child(2) { top: 50%; right: 0; margin-top: -19px; animation-delay: .65s; }
+.splash .orbit .od:nth-child(3) { bottom: 0; left: 50%; margin-left: -19px; animation-delay: .8s; }
+.splash .orbit .od:nth-child(4) { top: 50%; left: 0; margin-top: -19px; animation-delay: .95s; }
+@keyframes odIn { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: scale(1); } }
+
+/* logo mark */
+.splash .mark {
+  width: 104px; height: 104px; border-radius: 32px;
+  background: linear-gradient(145deg, #ff5c97, #a05bff);
+  display: grid; place-items: center; position: relative;
+  box-shadow: 0 22px 60px -16px rgba(255,77,141,.7), inset 0 2px 0 rgba(255,255,255,.3);
+  animation: markIn .8s cubic-bezier(.34,1.56,.64,1) both;
+  z-index: 2;
+}
+.splash .mark svg { width: 56px; height: 56px; }
+@keyframes markIn { from { opacity: 0; transform: scale(.4) rotate(-18deg); } to { opacity: 1; transform: none; } }
+.splash .mark .glow { position: absolute; inset: -3px; border-radius: 34px; box-shadow: 0 0 0 2px rgba(255,255,255,.18); animation: pulse 2.4s ease-in-out infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 12px rgba(255,255,255,0); } }
+
+.splash .word {
+  margin-top: 30px; text-align: center; z-index: 2;
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 33px; letter-spacing: -.5px; color: #fff;
+  opacity: 0; animation: fadeUp .7s cubic-bezier(.22,1,.36,1) .9s both;
+}
+.splash .word .hl { background: linear-gradient(100deg,#ff9ec4,#ffd0a8); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.splash .tagline {
+  margin-top: 10px; color: #c9bdf0; font-size: 13px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; z-index: 2;
+  opacity: 0; animation: fadeUp .7s cubic-bezier(.22,1,.36,1) 1.15s both;
+}
+
+/* loading line */
+.splash .loader { position: absolute; bottom: 64px; width: 120px; height: 4px; border-radius: 4px; background: rgba(255,255,255,.14); overflow: hidden; z-index: 2; }
+.splash .loader i { position: absolute; inset: 0; width: 40%; border-radius: 4px; background: linear-gradient(90deg,#ff9ec4,#fff); animation: load 1.6s ease-in-out infinite; }
+@keyframes load { 0% { left: -40%; } 100% { left: 100%; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .splash, .splash * { animation-duration: .01ms !important; }
+}

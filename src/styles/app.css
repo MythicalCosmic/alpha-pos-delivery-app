@@ -1,0 +1,31 @@
+/* ===== Smart Food — Vue app additions ===== */
+
+#app { display: contents; }
+
+/* route content cross-fade on leave (entrance handled per-screen by .screen-anim/.push-anim) */
+.route-leave-active { transition: opacity .14s ease; position: absolute; inset: 0; }
+.route-leave-to { opacity: 0; }
+
+/* list-row label + subtitle should always stack */
+.lrow .lt .a, .lrow .lt .b { display: block; }
+
+/* truncate long delivery address in the home header */
+.loc-text .val .addr-txt { display: inline-block; max-width: 168px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+
+/* keep the floating nav clear of the device safe area */
+.bottomnav { bottom: calc(14px + env(safe-area-inset-bottom)); }
+.cartbar { bottom: calc(100px + env(safe-area-inset-bottom)); }
+
+/* center the app on very wide desktop screens so it still reads as a mobile surface,
+   but never as a fake phone — just a comfortable max width */
+@media (min-width: 560px) {
+  .screen {
+    max-width: 460px;
+    margin: 0 auto;
+    box-shadow: 0 0 120px -40px rgba(124,77,255,0.4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+}

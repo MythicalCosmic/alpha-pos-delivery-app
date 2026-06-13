@@ -1,0 +1,176 @@
+/* ===== Smart Food — design tokens & base ===== */
+:root {
+  --font-display: 'Unbounded', system-ui, sans-serif;
+  --font-body: 'Manrope', system-ui, sans-serif;
+  --accent: #ff4d8d;
+  --accent-press: #ff2f78;
+  --radius-card: 26px;
+  --radius-sm: 16px;
+  --radius-pill: 999px;
+  --shadow-accent: 0 14px 34px -12px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+/* ---- Dark (default) ---- */
+[data-theme="dark"] {
+  --bg: #120e26;
+  --bg-grad-a: #1a1140;
+  --bg-grad-b: #0f0b22;
+  --surface: #1d1740;
+  --surface-2: #261e52;
+  --surface-3: #2f2664;
+  --hairline: rgba(255,255,255,0.08);
+  --hairline-strong: rgba(255,255,255,0.14);
+  --text: #f5f2ff;
+  --text-dim: #b3a9da;
+  --text-faint: #7a719f;
+  --accent-2: #b69bff;
+  --on-accent: #2a0c1c;
+  --star: #ffc24b;
+  --frame: #050410;
+  --nav-bg: rgba(24,18,52,0.86);
+  --card-img-tint: rgba(255,255,255,0.05);
+  --shimmer: rgba(255,255,255,0.06);
+}
+
+/* ---- Light ---- */
+[data-theme="light"] {
+  --bg: #f5f1ff;
+  --bg-grad-a: #efe8ff;
+  --bg-grad-b: #fbf8ff;
+  --surface: #ffffff;
+  --surface-2: #f4eeff;
+  --surface-3: #ece2ff;
+  --hairline: rgba(28,19,64,0.08);
+  --hairline-strong: rgba(28,19,64,0.14);
+  --text: #1c1340;
+  --text-dim: #6b6390;
+  --text-faint: #a59cc4;
+  --accent-2: #7a4bd6;
+  --on-accent: #ffffff;
+  --star: #f4a823;
+  --frame: #d9cef2;
+  --nav-bg: rgba(255,255,255,0.9);
+  --card-img-tint: rgba(28,19,64,0.04);
+  --shimmer: rgba(28,19,64,0.04);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; }
+body {
+  font-family: var(--font-body);
+  background: #0a0818;
+  color: var(--text);
+  min-height: 100vh;
+  overflow: hidden;
+}
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+input { font-family: inherit; }
+::selection { background: var(--accent); color: #fff; }
+
+/* ===== Fullscreen app surface (Telegram Mini App) ===== */
+.stage {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+.screen {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background:
+    radial-gradient(700px 420px at 15% -8%, var(--bg-grad-a) 0%, transparent 60%),
+    radial-gradient(600px 500px at 110% 105%, var(--bg-grad-b) 0%, transparent 60%),
+    var(--bg);
+  color: var(--text);
+  isolation: isolate;
+}
+
+/* scroll viewport */
+.viewport {
+  position: absolute;
+  inset: 0;
+  padding-top: max(env(safe-area-inset-top), 12px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.viewport::-webkit-scrollbar { display: none; }
+.has-nav .viewport { padding-bottom: calc(104px + env(safe-area-inset-bottom)); }
+
+.app-root { font-size: 15px; }
+
+/* ===== utility ===== */
+.px { padding-left: 20px; padding-right: 20px; }
+.col { display: flex; flex-direction: column; }
+.row { display: flex; align-items: center; }
+.gap8 { gap: 8px; } .gap10{gap:10px;} .gap12 { gap: 12px; } .gap16 { gap: 16px; }
+.spread { justify-content: space-between; }
+.muted { color: var(--text-dim); }
+.faint { color: var(--text-faint); }
+.dsp { font-family: var(--font-display); }
+
+/* ===== bottom nav ===== */
+.bottomnav {
+  position: absolute;
+  left: 14px; right: 14px; bottom: 14px;
+  height: 72px;
+  z-index: 45;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-around;
+  background: var(--nav-bg);
+  backdrop-filter: blur(22px) saturate(1.4);
+  -webkit-backdrop-filter: blur(22px) saturate(1.4);
+  border: 1px solid var(--hairline);
+  border-radius: 28px;
+  box-shadow: 0 18px 40px -18px rgba(0,0,0,0.55);
+  padding: 0 6px;
+}
+.navbtn {
+  flex: 1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 5px;
+  position: relative;
+  color: var(--text-faint);
+  transition: color .25s;
+  font-size: 10.5px; font-weight: 700;
+  letter-spacing: 0.2px;
+}
+.navbtn svg { width: 23px; height: 23px; transition: transform .3s cubic-bezier(.34,1.56,.64,1); }
+.navbtn.active { color: var(--accent); }
+.navbtn.active svg { transform: translateY(-2px) scale(1.08); }
+.navbtn .dot {
+  position: absolute; top: 6px;
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--accent);
+  opacity: 0; transform: scale(0);
+  transition: .3s cubic-bezier(.34,1.56,.64,1);
+}
+.navbtn.active .dot { opacity: 1; transform: scale(1); }
+.navbtn .badge {
+  position: absolute; top: 8px; right: 18px;
+  min-width: 16px; height: 16px; padding: 0 4px;
+  background: var(--accent); color: var(--on-accent);
+  border-radius: 8px; font-size: 9px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ===== animations ===== */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes popIn { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+.enter { animation: fadeUp .5s cubic-bezier(.22,1,.36,1) both; }
+
+/* screen transitions */
+.screen-anim { animation: fadeUp .42s cubic-bezier(.22,1,.36,1) both; }
+.push-anim { animation: pushIn .4s cubic-bezier(.22,1,.36,1) both; }
+@keyframes pushIn { from { opacity: 0; transform: translateX(34px); } to { opacity: 1; transform: none; } }
+
+/* press feedback */
+.press { transition: transform .12s ease; }
+.press:active { transform: scale(.96); }

@@ -1,0 +1,204 @@
+/* ===== Smart Food — component styles ===== */
+
+/* status bar already in styles.css */
+
+/* ---- home header ---- */
+.home-head { padding: 8px 20px 4px; }
+.loc-btn { display: flex; align-items: center; gap: 9px; }
+.loc-ic {
+  width: 40px; height: 40px; border-radius: 14px;
+  display: grid; place-items: center;
+  background: var(--accent); color: var(--on-accent);
+  box-shadow: var(--shadow-accent);
+  flex: none;
+}
+.loc-text .lbl { font-size: 11px; font-weight: 700; color: var(--text-faint); letter-spacing: .4px; text-transform: uppercase; }
+.loc-text .val { display: flex; align-items: center; gap: 4px; font-weight: 800; font-size: 15px; margin-top: 1px; }
+.loc-text .val svg { color: var(--accent); }
+.avatar {
+  width: 44px; height: 44px; border-radius: 15px; flex: none;
+  background: linear-gradient(140deg, var(--surface-3), var(--surface-2));
+  border: 1px solid var(--hairline);
+  display: grid; place-items: center; color: var(--accent-2);
+  position: relative;
+}
+.avatar .ping { position: absolute; top: -2px; right: -2px; width: 11px; height: 11px; border-radius: 50%; background: var(--accent); border: 2.5px solid var(--surface); }
+
+/* ---- search ---- */
+.search {
+  margin: 14px 20px 0;
+  display: flex; align-items: center; gap: 11px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+  padding: 0 16px; height: 54px;
+}
+.search input { flex: 1; border: none; outline: none; background: none; color: var(--text); font-size: 14.5px; font-weight: 600; }
+.search input::placeholder { color: var(--text-faint); font-weight: 600; }
+.search .filt {
+  width: 34px; height: 34px; border-radius: 11px; flex: none;
+  background: var(--accent); color: var(--on-accent);
+  display: grid; place-items: center;
+}
+.search .filt svg { width: 17px; height: 17px; }
+
+/* ---- section header ---- */
+.sec-head { display: flex; align-items: baseline; justify-content: space-between; padding: 0 20px; margin: 26px 0 14px; }
+.sec-head h2 { font-family: var(--font-display); font-weight: 700; font-size: 19px; margin: 0; letter-spacing: -.3px; }
+.sec-head .link { font-size: 13px; font-weight: 800; color: var(--accent); }
+
+/* ---- category chips ---- */
+.chips { display: flex; gap: 11px; overflow-x: auto; padding: 2px 20px 4px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  flex: none; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  width: 70px;
+}
+.chip .ci {
+  width: 64px; height: 64px; border-radius: 20px;
+  background: var(--surface); border: 1px solid var(--hairline);
+  display: grid; place-items: center; overflow: hidden;
+  transition: .25s; position: relative;
+}
+.chip .ci .foodart { width: 100%; height: 100%; }
+.chip.on .ci { border-color: transparent; box-shadow: var(--shadow-accent); transform: translateY(-2px); }
+.chip.on .ci::after { content:""; position:absolute; inset:0; border:2.5px solid var(--accent); border-radius:20px; }
+.chip span { font-size: 11.5px; font-weight: 700; color: var(--text-dim); }
+.chip.on span { color: var(--text); }
+
+/* category-page big tiles */
+.cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 4px 20px 0; }
+.cat-tile {
+  border-radius: var(--radius-card); overflow: hidden; position: relative;
+  height: 116px; border: 1px solid var(--hairline);
+  display: flex; align-items: flex-end; padding: 14px;
+  background: var(--surface);
+}
+.cat-tile .art { position: absolute; right: -14px; top: -14px; width: 84px; height: 84px; border-radius: 22px; overflow: hidden; }
+.cat-tile .nm { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
+.cat-tile .ct { font-size: 12px; color: var(--text-dim); font-weight: 700; margin-top: 2px; }
+
+/* ---- promo banner ---- */
+.promo {
+  margin: 16px 20px 0; border-radius: var(--radius-card);
+  padding: 20px 22px; position: relative; overflow: hidden;
+  background: linear-gradient(120deg, var(--accent), #a05bff 92%);
+  color: #fff;
+}
+.promo h3 { font-family: var(--font-display); font-weight: 700; font-size: 19px; margin: 0 0 6px; line-height: 1.15; max-width: 70%; }
+.promo p { margin: 0; font-size: 12.5px; font-weight: 700; opacity: .92; }
+.promo .pill { margin-top: 14px; display: inline-flex; align-items:center; gap:6px; background: rgba(255,255,255,0.22); padding: 7px 13px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 800; }
+.promo .deco { position: absolute; right: -30px; top: -30px; width: 130px; height: 130px; border-radius: 36px; overflow: hidden; transform: rotate(12deg); box-shadow: 0 20px 40px -12px rgba(0,0,0,.4); }
+.promo .deco2 { position: absolute; right: 70px; bottom: -34px; width: 80px; height: 80px; border-radius: 24px; overflow: hidden; transform: rotate(-10deg); opacity:.9; }
+
+/* ---- food card (grid) ---- */
+.food-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 0 20px; }
+.fcard {
+  background: var(--surface); border: 1px solid var(--hairline);
+  border-radius: var(--radius-card); padding: 10px; position: relative;
+  display: flex; flex-direction: column; text-align: left;
+}
+.fcard .imgwrap { position: relative; border-radius: 19px; overflow: hidden; aspect-ratio: 1.15; }
+.fcard .imgwrap .foodart { width: 100%; height: 100%; }
+.fcard .fav {
+  position: absolute; top: 8px; right: 8px; width: 32px; height: 32px; border-radius: 11px;
+  background: rgba(8,6,20,0.4); backdrop-filter: blur(8px); display: grid; place-items: center; color: #fff;
+  transition: transform .2s;
+}
+.fcard .fav.on { color: var(--accent); background: rgba(255,255,255,0.92); }
+.fcard .fav svg { width: 17px; height: 17px; }
+.fcard .badge-tag {
+  position: absolute; top: 9px; left: 9px; font-size: 9.5px; font-weight: 800; letter-spacing: .3px;
+  padding: 4px 8px; border-radius: 8px; color: #fff; text-transform: uppercase;
+  background: rgba(8,6,20,0.42); backdrop-filter: blur(8px);
+}
+.fcard .badge-tag.bestseller { background: var(--accent); color: var(--on-accent); }
+.fcard .badge-tag.new { background: #6fae54; }
+.fcard .badge-tag.spicy { background: #ff5a3c; }
+.fcard .nm { font-weight: 800; font-size: 13.5px; margin: 10px 2px 2px; line-height: 1.25; min-height: 34px; }
+.fcard .meta { display: flex; align-items: center; gap: 10px; padding: 0 2px; font-size: 11px; font-weight: 700; color: var(--text-dim); }
+.fcard .meta .star { display: flex; align-items: center; gap: 3px; color: var(--star); }
+.fcard .meta .star svg { width: 13px; height: 13px; }
+.fcard .meta .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--text-faint); }
+.fcard .priceline { display: flex; align-items: center; justify-content: space-between; margin: 11px 2px 2px; }
+.fcard .price { font-family: var(--font-display); font-weight: 700; font-size: 14.5px; }
+.fcard .price small { display:block; font-family: var(--font-body); font-weight: 700; font-size: 10px; color: var(--text-faint); text-decoration: line-through; }
+.fcard .add {
+  width: 34px; height: 34px; border-radius: 12px; flex: none;
+  background: var(--accent); color: var(--on-accent); display: grid; place-items: center;
+  box-shadow: var(--shadow-accent);
+}
+.fcard .add svg { width: 19px; height: 19px; }
+
+/* ---- food card (list / row) for variation B ---- */
+.flist { display: flex; flex-direction: column; gap: 13px; padding: 0 20px; }
+.frow {
+  display: flex; gap: 14px; background: var(--surface); border: 1px solid var(--hairline);
+  border-radius: var(--radius-card); padding: 12px; align-items: stretch; text-align: left; position: relative;
+}
+.frow .imgwrap { width: 96px; height: 96px; border-radius: 18px; overflow: hidden; flex: none; position: relative; }
+.frow .imgwrap .foodart { width: 100%; height: 100%; }
+.frow .body { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.frow .nm { font-weight: 800; font-size: 15px; }
+.frow .ds { font-size: 11.5px; color: var(--text-dim); font-weight: 600; margin-top: 3px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.frow .meta { display:flex; align-items:center; gap:9px; font-size:11px; font-weight:700; color: var(--text-dim); margin-top: auto; }
+.frow .meta .star { color: var(--star); display:flex; align-items:center; gap:3px; }
+.frow .meta .star svg { width:13px;height:13px; }
+.frow .priceline { display:flex; align-items:center; justify-content: space-between; margin-top: 8px; }
+.frow .price { font-family: var(--font-display); font-weight: 700; font-size: 15px; }
+.frow .add { width: 36px; height: 36px; border-radius: 12px; background: var(--accent); color: var(--on-accent); display:grid; place-items:center; box-shadow: var(--shadow-accent); flex:none; }
+.frow .add svg { width: 20px; height: 20px; }
+.frow .fav { position: absolute; top: 12px; right: 12px; color: var(--text-faint); }
+.frow .fav.on { color: var(--accent); }
+.frow .fav svg { width: 19px; height: 19px; }
+
+/* ---- qty stepper ---- */
+.stepper { display: inline-flex; align-items: center; gap: 0; background: var(--surface-2); border-radius: var(--radius-pill); padding: 4px; border: 1px solid var(--hairline); }
+.stepper button { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: var(--text); }
+.stepper button.acc { background: var(--accent); color: var(--on-accent); }
+.stepper .q { min-width: 26px; text-align: center; font-weight: 800; font-size: 15px; }
+
+/* ---- toast ---- */
+.toast {
+  position: absolute; left: 50%; bottom: 100px; transform: translateX(-50%);
+  background: var(--text); color: var(--bg);
+  padding: 12px 18px; border-radius: var(--radius-pill); font-weight: 800; font-size: 13px;
+  display: flex; align-items: center; gap: 8px; z-index: 70;
+  box-shadow: 0 16px 40px -12px rgba(0,0,0,.5);
+  animation: toastIn .35s cubic-bezier(.34,1.56,.64,1) both;
+}
+.toast svg { color: var(--accent); width: 18px; height: 18px; }
+@keyframes toastIn { from { opacity:0; transform: translate(-50%, 14px); } to { opacity:1; transform: translate(-50%,0); } }
+
+/* ---- generic top bar (pushed screens) ---- */
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 6px 20px 4px; }
+.topbar h1 { font-family: var(--font-display); font-weight: 700; font-size: 18px; margin: 0; letter-spacing: -.3px; }
+.iconbtn { width: 42px; height: 42px; border-radius: 14px; background: var(--surface); border: 1px solid var(--hairline); display: grid; place-items: center; color: var(--text); }
+.iconbtn.ghost { background: transparent; border-color: transparent; }
+
+/* ---- empty state ---- */
+.empty { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding: 70px 40px; gap: 6px; }
+.empty .ei { width: 92px; height: 92px; border-radius: 30px; background: var(--surface); border:1px solid var(--hairline); display:grid; place-items:center; color: var(--accent); margin-bottom: 10px; }
+.empty .ei svg { width: 40px; height: 40px; }
+.empty h3 { font-family: var(--font-display); font-weight: 700; font-size: 17px; margin: 6px 0 0; }
+.empty p { margin: 0; color: var(--text-dim); font-size: 13px; font-weight: 600; max-width: 220px; }
+
+/* segmented control */
+.segmented { display:flex; background: var(--surface); border:1px solid var(--hairline); border-radius: var(--radius-pill); padding: 4px; margin: 6px 20px 0; }
+.segmented button { flex:1; height: 38px; border-radius: var(--radius-pill); font-weight: 800; font-size: 13px; color: var(--text-dim); transition: .2s; }
+.segmented button.on { background: var(--accent); color: var(--on-accent); }
+
+/* list row (settings) */
+.lrow { display:flex; align-items:center; gap:14px; padding: 15px 16px; background: var(--surface); border:1px solid var(--hairline); border-radius: var(--radius-sm); }
+.lrow .li { width: 40px; height: 40px; border-radius: 13px; display:grid; place-items:center; background: var(--surface-2); color: var(--accent-2); flex:none; }
+.lrow .li svg { width: 21px; height: 21px; }
+.lrow .lt { flex:1; }
+.lrow .lt .a { font-weight: 800; font-size: 14px; }
+.lrow .lt .b { font-size: 11.5px; color: var(--text-dim); font-weight: 600; margin-top:1px; }
+.lrow .chev { color: var(--text-faint); }
+
+/* switch */
+.switch { width: 48px; height: 28px; border-radius: 999px; background: var(--surface-3); position: relative; transition: .25s; flex:none; }
+.switch.on { background: var(--accent); }
+.switch i { position:absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: .25s cubic-bezier(.34,1.56,.64,1); box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+.switch.on i { left: 23px; }
