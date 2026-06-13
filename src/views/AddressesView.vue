@@ -12,23 +12,18 @@
           <span :class="['radio', { on: a.selected }]"></span>
           <span class="li2"><Icon name="pin" :size="20" /></span>
           <span class="lt">
-            <span class="a">{{ a.tag }}</span>
+            <span class="a">{{ a.tag }} <em v-if="a.precision === 'exact'" class="exact">• {{ t("precise", store.lang) }}</em></span>
             <span class="b">{{ a.text }}</span>
+            <span v-if="detailLine(a)" class="c">{{ detailLine(a) }}</span>
           </span>
+          <button class="edit press" @click.stop="router.push(`/address/edit/${a.id}`)"><Icon name="edit" :size="18" /></button>
           <button class="del press" @click.stop="removeAddress(a.id)"><Icon name="trash" :size="18" /></button>
         </div>
       </div>
 
-      <!-- add form -->
-      <div v-if="adding" class="addform">
-        <input v-model="tag" :placeholder="t('addrLabel', store.lang)" />
-        <input v-model="text" :placeholder="t('addrLine', store.lang)" />
-        <div class="addform-acts">
-          <button class="ghostbtn press" @click="cancel">{{ t("cancel", store.lang) }}</button>
-          <button class="solidbtn press" :disabled="!text.trim()" @click="confirm">{{ t("save", store.lang) }}</button>
-        </div>
-      </div>
-      <button v-else class="addbtn press" @click="adding = true"><Icon name="plus" :size="20" /> {{ t("addAddress", store.lang) }}</button>
+      <button class="addbtn press" @click="router.push('/address/edit')">
+        <Icon name="plus" :size="20" /> {{ t("addAddress", store.lang) }}
+      </button>
 
       <div style="height:24px"></div>
     </div>
@@ -36,23 +31,20 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
 import { useRouter } from "vue-router";
 import Icon from "../components/Icon.js";
 import TopBar from "../components/TopBar.vue";
-import { store, selectAddress, removeAddress, addAddress } from "../store.js";
+import { store, selectAddress, removeAddress } from "../store.js";
 import { t } from "../data/strings.js";
 
 const router = useRouter();
-const adding = ref(false);
-const tag = ref("");
-const text = ref("");
 
-function cancel() { adding.value = false; tag.value = ""; text.value = ""; }
-function confirm() {
-  if (!text.value.trim()) return;
-  addAddress(tag.value.trim(), text.value.trim());
-  cancel();
+function detailLine(a) {
+  const parts = [];
+  if (a.apartment) parts.push(`${t("apartment", store.lang)} ${a.apartment}`);
+  if (a.entrance) parts.push(`${t("entrance", store.lang)} ${a.entrance}`);
+  if (a.floor) parts.push(`${t("floor", store.lang)} ${a.floor}`);
+  return parts.join(" · ");
 }
 </script>
 
@@ -60,15 +52,11 @@ function confirm() {
 .addr-row { display: flex; align-items: center; gap: 13px; padding: 15px 16px; background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius-sm); }
 .addr-row .li2 { width: 40px; height: 40px; border-radius: 13px; display: grid; place-items: center; background: var(--surface-2); color: var(--accent-2); flex: none; }
 .addr-row .lt { flex: 1; min-width: 0; }
-.addr-row .lt .a { font-weight: 800; font-size: 14px; }
-.addr-row .lt .b { font-size: 11.5px; color: var(--text-dim); font-weight: 600; margin-top: 2px; display: block; }
+.addr-row .lt .a { font-weight: 800; font-size: 14px; display: flex; align-items: center; gap: 6px; }
+.addr-row .lt .a .exact { font-style: normal; font-size: 10.5px; font-weight: 800; color: #1fb87a; }
+.addr-row .lt .b { font-size: 11.5px; color: var(--text-dim); font-weight: 600; margin-top: 2px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.addr-row .lt .c { font-size: 11px; color: var(--text-faint); font-weight: 700; margin-top: 3px; display: block; }
+.addr-row .edit { color: var(--accent-2); flex: none; }
 .addr-row .del { color: var(--text-faint); flex: none; }
 .addbtn { width: 100%; margin-top: 14px; height: 54px; border-radius: 16px; border: 1.5px dashed var(--hairline-strong); display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 800; font-size: 14px; color: var(--accent); }
-.addform { margin-top: 14px; background: var(--surface); border: 1px solid var(--hairline); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
-.addform input { height: 50px; border-radius: 14px; background: var(--surface-2); border: 1.5px solid var(--hairline); padding: 0 14px; color: var(--text); font-weight: 700; font-size: 14px; outline: none; }
-.addform input:focus { border-color: var(--accent); }
-.addform-acts { display: flex; gap: 10px; margin-top: 2px; }
-.ghostbtn { flex: 1; height: 48px; border-radius: 14px; background: var(--surface-2); font-weight: 800; color: var(--text); }
-.solidbtn { flex: 1; height: 48px; border-radius: 14px; background: var(--accent); color: var(--on-accent); font-weight: 800; box-shadow: var(--shadow-accent); }
-.solidbtn:disabled { opacity: .5; }
 </style>

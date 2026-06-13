@@ -18,13 +18,21 @@
       <!-- address -->
       <div class="lbl">{{ t("deliveryAddr", store.lang) }}</div>
       <div class="addr-card">
-        <div class="addr-map">
+        <MiniMap
+          v-if="selectedAddress && selectedAddress.lat != null"
+          :lat="selectedAddress.lat"
+          :lng="selectedAddress.lng"
+          :height="92"
+          class="addr-mini"
+        />
+        <div v-else class="addr-map">
           <span class="road"></span><span class="road b"></span>
           <span class="pin"><Icon name="pin" :size="26" /></span>
         </div>
         <div class="addr-body">
           <span class="tag"><Icon name="pin" :size="12" /> {{ selectedAddress ? selectedAddress.tag : t("home2", store.lang) }}</span>
           <div class="ad">{{ selectedAddress ? selectedAddress.text : "—" }}</div>
+          <div v-if="addrDetail" class="ad2">{{ addrDetail }}</div>
           <div class="ch press" @click="router.push('/addresses')">{{ t("change", store.lang) }}</div>
         </div>
       </div>
@@ -90,6 +98,7 @@ import { useRouter } from "vue-router";
 import Icon from "../components/Icon.js";
 import FoodArt from "../components/FoodArt.js";
 import TopBar from "../components/TopBar.vue";
+import MiniMap from "../components/MiniMap.vue";
 import { store, placeOrder, cartSubtotal, cartDiscount, cartDelivery, selectedAddress } from "../store.js";
 import { t } from "../data/strings.js";
 import { foodById, foodName, sum } from "../data/foods.js";
@@ -117,10 +126,28 @@ const foods = computed(() => store.cart.map(c => ({ f: foodById(c.foodId), qty: 
 const count = computed(() => store.cart.reduce((s, i) => s + i.qty, 0));
 const grandTotal = computed(() => cartSubtotal.value - cartDiscount.value + cartDelivery.value + tip.value);
 
+const addrDetail = computed(() => {
+  const a = selectedAddress.value;
+  if (!a) return "";
+  const parts = [];
+  if (a.apartment) parts.push(`${t("apartment", store.lang)} ${a.apartment}`);
+  if (a.entrance) parts.push(`${t("entrance", store.lang)} ${a.entrance}`);
+  if (a.floor) parts.push(`${t("floor", store.lang)} ${a.floor}`);
+  if (a.intercom) parts.push(`${t("intercom", store.lang)} ${a.intercom}`);
+  return parts.join(" · ");
+});
+
 onMounted(() => { if (store.cart.length === 0) router.replace("/cart"); });
 
 function place() {
-  const order = placeOrder(grandTotal.value);
+  const order = placeOrder(grandTotal.value, {
+    note: note.value, payment: pay.value, tip: tip.value, slot: slot.value,
+  });
   router.replace(`/tracking/${order.id}`);
 }
 </script>
+
+<style scoped>
+.addr-mini { width: 92px; flex: none; border-radius: 0; }
+.addr-body .ad2 { font-size: 11px; color: var(--text-faint); font-weight: 700; margin-top: 4px; }
+</style>

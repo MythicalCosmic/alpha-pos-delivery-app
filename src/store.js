@@ -41,8 +41,12 @@ export const store = reactive({
   tweaks: { ...TWEAK_DEFAULTS, ...(saved.tweaks || {}) },
   user: saved.user || { name: "Aziz Karimov", phone: "+998 90 123 45 67", email: "aziz@smartfood.uz" },
   addresses: saved.addresses || [
-    { id: "a1", tag: "Uy", text: "Toshkent, Amir Temur ko‘chasi 12", selected: true },
-    { id: "a2", tag: "Ish", text: "Toshkent, Mustaqillik ko‘chasi 45", selected: false },
+    { id: "a1", tag: "Uy", text: "Toshkent, Amir Temur ko‘chasi 12",
+      lat: 41.311158, lng: 69.279737, city: "Toshkent", street: "Amir Temur ko‘chasi", house: "12",
+      apartment: "45", entrance: "2", floor: "5", intercom: "45", comment: "", precision: "exact", selected: true },
+    { id: "a2", tag: "Ish", text: "Toshkent, Mustaqillik ko‘chasi 45",
+      lat: 41.300600, lng: 69.340300, city: "Toshkent", street: "Mustaqillik ko‘chasi", house: "45",
+      apartment: "", entrance: "", floor: "8", intercom: "", comment: "Ofis 803", precision: "exact", selected: false },
   ],
   cards: saved.cards || [
     { id: "c1", brand: "UzCard", last4: "4821", default: true },
@@ -142,11 +146,22 @@ export function applyPromo() {
   }
 }
 
-export function placeOrder(total) {
+export function placeOrder(total, meta = {}) {
   const id = "SF-" + (2050 + store.orders.length);
+  const addr = selectedAddress.value;
   const order = {
     id, date: t("today", store.lang), status: "preparing", total,
-    items: store.cart.map(c => ({ foodId: c.foodId, qty: c.qty })),
+    items: store.cart.map(c => ({ foodId: c.foodId, sizeId: c.sizeId, extraIds: c.extraIds, qty: c.qty, unit: c.unit })),
+    // snapshot of where/how it goes — the shape a real "create order" call would send
+    address: addr ? {
+      tag: addr.tag, text: addr.text, lat: addr.lat, lng: addr.lng,
+      apartment: addr.apartment, entrance: addr.entrance, floor: addr.floor,
+      intercom: addr.intercom, comment: addr.comment,
+    } : null,
+    note: meta.note || "",
+    payment: meta.payment || "cash",
+    tip: meta.tip || 0,
+    slot: meta.slot || "asap",
   };
   store.orders.unshift(order);
   clearCart();
@@ -173,6 +188,33 @@ export function addAddress(tag, text) {
   store.addresses.forEach(a => { a.selected = false; });
   store.addresses.push({ id, tag: tag || "Manzil", text, selected: true });
   haptic("success");
+}
+// Create or update a full address record (with map coords + door-level details),
+// then select it. `addr.id` decides create vs update.
+export function upsertAddress(addr) {
+  const rec = {
+    id: addr.id || ("a" + (++store._uid)),
+    tag: (addr.tag || "Manzil").trim(),
+    text: (addr.text || "").trim(),
+    lat: addr.lat ?? null,
+    lng: addr.lng ?? null,
+    city: addr.city || "",
+    street: addr.street || "",
+    house: addr.house || "",
+    apartment: (addr.apartment || "").trim(),
+    entrance: (addr.entrance || "").trim(),
+    floor: (addr.floor || "").trim(),
+    intercom: (addr.intercom || "").trim(),
+    comment: (addr.comment || "").trim(),
+    precision: addr.precision || "",
+    selected: true,
+  };
+  store.addresses.forEach(a => { a.selected = false; });
+  const i = store.addresses.findIndex(a => a.id === rec.id);
+  if (i >= 0) store.addresses[i] = { ...store.addresses[i], ...rec };
+  else store.addresses.push(rec);
+  haptic("success");
+  return rec;
 }
 export function removeAddress(id) {
   const i = store.addresses.findIndex(a => a.id === id);

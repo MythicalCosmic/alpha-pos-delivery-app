@@ -16,6 +16,7 @@ const routes = [
   { path: "/themes", name: "themes", component: () => import("./views/ThemesView.vue"), meta: { pushed: true, hideNav: true } },
   { path: "/profile", name: "profile", component: () => import("./views/ProfileView.vue"), meta: { pushed: true, hideNav: true } },
   { path: "/addresses", name: "addresses", component: () => import("./views/AddressesView.vue"), meta: { pushed: true, hideNav: true } },
+  { path: "/address/edit/:id?", name: "address-edit", component: () => import("./views/AddressEditView.vue"), meta: { pushed: true, hideNav: true } },
   { path: "/payments", name: "payments", component: () => import("./views/PaymentsView.vue"), meta: { pushed: true, hideNav: true } },
   { path: "/notifications", name: "notifications", component: () => import("./views/NotificationsView.vue"), meta: { pushed: true, hideNav: true } },
   { path: "/support", name: "support", component: () => import("./views/SupportView.vue"), meta: { pushed: true, hideNav: true } },

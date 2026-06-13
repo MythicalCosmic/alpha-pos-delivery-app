@@ -13,6 +13,41 @@ npm run preview    # serve the production build
 
 Open the printed URL in a browser, or host `dist/` and set it as your bot's Mini App URL in **@BotFather**.
 
+## Environment
+
+Copy `.env.example` → `.env` and set:
+
+```bash
+VITE_YANDEX_MAPS_KEY=your-yandex-maps-js-api-key   # JavaScript API + Geocoder
+VITE_API_BASE=/api/v1                              # backend base URL
+```
+
+The Yandex key must have **"JavaScript API and Geocoder API"** enabled in the
+[Yandex cabinet](https://developer.tech.yandex.ru/services). Client map keys are public by
+design — restrict the key by **HTTP-Referer** to your Mini App domain.
+
+## Maps & precise addresses (Yandex)
+
+Delivery addresses are pinned on a real **Yandex map** so couriers reach the exact building:
+
+- **`src/maps.js`** — loads the Yandex JS API 2.1 once, exposes `reverseGeocode`/`forwardGeocode`.
+- **`MapPicker.vue`** — full-screen picker with a fixed centre pin (the map moves under it),
+  "my location" (Telegram `LocationManager` → browser geolocation fallback), address search,
+  and a live precision badge (*Pinpoint* vs *Approximate*).
+- **`AddressEditView.vue`** — map pin + door-level fields (apartment, entrance, floor,
+  intercom, courier note).
+- **`MiniMap.vue`** — read-only map preview shown on the address list and at checkout.
+
+Each saved address now carries `{ lat, lng, precision, street, house, apartment, entrance,
+floor, intercom, comment }` and that snapshot rides along on the order.
+
+## Backend
+
+The app currently runs on **mock data** (see `src/data/` + `src/store.js`). Every API the
+real backend must provide — auth, catalog, cart, checkout, orders, tracking, payments,
+loyalty, addresses, and the Yandex geocoding proxy — is fully specified in
+**[`BACKEND_API.md`](./BACKEND_API.md)**.
+
 ## What's inside
 
 **Pages (all working, full flow):**
