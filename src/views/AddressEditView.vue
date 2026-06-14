@@ -58,26 +58,26 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed, watch } from "vue";
+import { reactive, ref, computed, watch, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import Icon from "../components/Icon.js";
 import TopBar from "../components/TopBar.vue";
 import MiniMap from "../components/MiniMap.vue";
 import MapPicker from "../components/MapPicker.vue";
-import { store, upsertAddress } from "../store.js";
+import { store, saveAddress, loadAddresses } from "../store.js";
 import { t } from "../data/strings.js";
 import { showBackButton } from "../telegram.js";
 
 const route = useRoute();
 const router = useRouter();
 
-const editing = computed(() => store.addresses.find(a => a.id === route.params.id) || null);
+const editing = computed(() => store.addresses.find(a => String(a.id) === String(route.params.id)) || null);
 const isNew = computed(() => !editing.value);
 
 const form = reactive({
   id: editing.value?.id || null,
-  tag: editing.value?.tag || t("tagHome", store.lang),
-  text: editing.value?.text || "",
+  tag: editing.value?.label || t("tagHome", store.lang),
+  text: editing.value?.line || "",
   lat: editing.value?.lat ?? null,
   lng: editing.value?.lng ?? null,
   city: editing.value?.city || "",
@@ -99,7 +99,8 @@ const tagOpts = computed(() => [
 const isCustomTag = computed(() => !tagOpts.value.some(o => o.v === form.tag));
 
 const openPicker = ref(false);
-const canSave = computed(() => !!form.text.trim());
+const saving = ref(false);
+const canSave = computed(() => !!form.text.trim() && !saving.value);
 
 // While the map overlay is open, the Telegram back button should close it,
 // not pop the whole screen. Restore the normal handler when it closes.
@@ -122,11 +123,18 @@ function onPicked(p) {
   openPicker.value = false;
 }
 
-function save() {
-  if (!canSave.value) return;
-  upsertAddress({ ...form });
-  router.back();
+async function save() {
+  if (!form.text.trim() || saving.value) return;
+  saving.value = true;
+  try {
+    await saveAddress({ ...form });
+    router.back();
+  } catch (e) {
+    saving.value = false;
+  }
 }
+
+onMounted(() => { if (!store.addresses.length) loadAddresses(); });
 </script>
 
 <style scoped>

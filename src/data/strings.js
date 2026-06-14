@@ -197,9 +197,96 @@ export const STRINGS = {
   tapHint:       { uz: "Bino ustiga bosing yoki xaritani suring", en: "Tap a building or drag the map", ru: "Нажмите на здание или двигайте карту" },
   locFail:       { uz: "Joylashuvni aniqlab bo‘lmadi", en: "Couldn't get location", ru: "Не удалось определить" },
   needsHttps:    { uz: "Joylashuv uchun HTTPS yoki localhost kerak", en: "Location needs HTTPS or localhost", ru: "Геолокация требует HTTPS или localhost" },
+
+  // ---- boot / connection states ----
+  loading:       { uz: "Yuklanmoqda…", en: "Loading…", ru: "Загрузка…" },
+  retry:         { uz: "Qayta urinish", en: "Try again", ru: "Повторить" },
+  refresh:       { uz: "Yangilash", en: "Refresh", ru: "Обновить" },
+  openTgT:       { uz: "Telegram orqali oching", en: "Open from Telegram", ru: "Откройте из Telegram" },
+  openTgS:       { uz: "Bu ilova Smart Food bot ichida ishlaydi", en: "This app runs inside the Smart Food bot", ru: "Приложение работает внутри бота Smart Food" },
+  blockedT:      { uz: "Hisob bloklangan", en: "Account blocked", ru: "Аккаунт заблокирован" },
+  blockedS:      { uz: "Yordam uchun qo‘llab-quvvatlashga murojaat qiling", en: "Please contact support for help", ru: "Обратитесь в поддержку" },
+  connErrT:      { uz: "Ulanib bo‘lmadi", en: "Can’t connect", ru: "Нет соединения" },
+  connErrS:      { uz: "Internetni tekshiring va qayta urining", en: "Check your connection and try again", ru: "Проверьте соединение и повторите" },
+
+  // ---- store closed / no cashier ----
+  closedT:       { uz: "Hozircha yopiq", en: "We’re closed right now", ru: "Сейчас закрыто" },
+  closedS:       { uz: "Do‘kon vaqtincha buyurtma qabul qilmayapti", en: "The store isn’t taking orders at the moment", ru: "Магазин временно не принимает заказы" },
+  noCashierT:    { uz: "Hozir buyurtma qabul qila olmaymiz", en: "We can’t take orders right now", ru: "Сейчас не можем принять заказ" },
+  noCashierS:    { uz: "Birozdan so‘ng yana urinib ko‘ring", en: "Please try again shortly", ru: "Попробуйте чуть позже" },
+  browseClosed:  { uz: "Yopiq — menyu mavjud emas", en: "Closed — menu unavailable", ru: "Закрыто — меню недоступно" },
+
+  // ---- cart / quote conflicts (branch on code, copy is localized) ----
+  cf_empty_cart:       { uz: "Savat bo‘sh", en: "Your cart is empty", ru: "Корзина пуста" },
+  cf_item_unavailable: { uz: "Ba’zi taomlar mavjud emas", en: "Some items are unavailable", ru: "Некоторые позиции недоступны" },
+  cf_invalid_quantity: { uz: "Mahsulot soni noto‘g‘ri", en: "Invalid quantity", ru: "Неверное количество" },
+  cf_topping_required: { uz: "Qo‘shimchani tanlang", en: "Please choose the required add-ons", ru: "Выберите обязательные добавки" },
+  cf_topping_min:      { uz: "Yetarlicha qo‘shimcha tanlanmadi", en: "Choose more add-ons", ru: "Выберите больше добавок" },
+  cf_topping_max:      { uz: "Juda ko‘p qo‘shimcha", en: "Too many add-ons selected", ru: "Слишком много добавок" },
+  cf_min_order:        { uz: "Minimal buyurtma summasiga yetmadi", en: "Below the minimum order", ru: "Меньше минимальной суммы" },
+  cf_error:            { uz: "Xatolik yuz berdi", en: "Something went wrong", ru: "Произошла ошибка" },
+  minMore:       { uz: "yana qo‘shing", en: "more to checkout", ru: "до минимума" },
+
+  // ---- order lifecycle ----
+  stPending:     { uz: "Tasdiq kutilmoqda", en: "Awaiting confirmation", ru: "Ожидает подтверждения" },
+  stDispatched:  { uz: "Tasdiqlandi", en: "Confirmed", ru: "Подтверждён" },
+  stRejected:    { uz: "Rad etildi", en: "Rejected", ru: "Отклонён" },
+  stCanceled:    { uz: "Bekor qilindi", en: "Canceled", ru: "Отменён" },
+  kPreparing:    { uz: "Tayyorlanmoqda", en: "Preparing", ru: "Готовится" },
+  kReady:        { uz: "Tayyor", en: "Ready", ru: "Готов" },
+  cancelOrder:   { uz: "Buyurtmani bekor qilish", en: "Cancel order", ru: "Отменить заказ" },
+  cancelAsk:     { uz: "Buyurtma bekor qilinsinmi?", en: "Cancel this order?", ru: "Отменить этот заказ?" },
+  cannotCancel:  { uz: "Buyurtmani bekor qilib bo‘lmaydi", en: "This order can’t be canceled", ru: "Заказ нельзя отменить" },
+  queueNo:       { uz: "Navbat raqami", en: "Queue number", ru: "Номер очереди" },
+  awaitingSub:   { uz: "Buyurtmangiz tasdiqlanishini kutmoqda", en: "Your order is awaiting confirmation", ru: "Ваш заказ ожидает подтверждения" },
+  nothingHere:   { uz: "Bu yerda hozircha hech narsa yo‘q", en: "Nothing here yet", ru: "Здесь пока пусто" },
+
+  // ---- loyalty (live) ----
+  pointsBalance: { uz: "Ball balansi", en: "Points balance", ru: "Баланс баллов" },
+  usePoints:     { uz: "Ballarni ishlatish", en: "Use points", ru: "Использовать баллы" },
+  pointsWorth:   { uz: "1 ball = {v} so‘m", en: "1 point = {v} so‘m", ru: "1 балл = {v} сум" },
+  loyaltyOff:    { uz: "Sodiqlik dasturi o‘chirilgan", en: "Loyalty is turned off", ru: "Программа лояльности выключена" },
+  earned:        { uz: "Olingan", en: "Earned", ru: "Начислено" },
+  redeemed:      { uz: "Ishlatilgan", en: "Redeemed", ru: "Списано" },
+  earnPreview:   { uz: "Bu buyurtmadan {n} ball", en: "Earn {n} points on this order", ru: "Начислим {n} баллов" },
+
+  // ---- support tickets ----
+  myTickets:     { uz: "Mening murojaatlarim", en: "My tickets", ru: "Мои обращения" },
+  newTicket:     { uz: "Yangi murojaat", en: "New ticket", ru: "Новое обращение" },
+  ticketSubject: { uz: "Mavzu (ixtiyoriy)", en: "Subject (optional)", ru: "Тема (необязательно)" },
+  ticketMsg:     { uz: "Xabaringiz", en: "Your message", ru: "Ваше сообщение" },
+  sendMsg:       { uz: "Yuborish", en: "Send", ru: "Отправить" },
+  ticketOpen:    { uz: "Ochiq", en: "Open", ru: "Открыт" },
+  ticketClosed:  { uz: "Yopilgan", en: "Closed", ru: "Закрыт" },
+  noTickets:     { uz: "Murojaatlar yo‘q", en: "No tickets yet", ru: "Обращений пока нет" },
+  cancel:        { uz: "Bekor qilish", en: "Cancel", ru: "Отмена" },
+  catAll:        { uz: "Hammasi", en: "All", ru: "Все" },
+  freeOver:      { uz: "{v} dan ortiq buyurtmaga bepul yetkazish", en: "Free delivery on orders over {v}", ru: "Бесплатная доставка от {v}" },
+  minOrderInfo:  { uz: "Minimal buyurtma {v}", en: "Minimum order {v}", ru: "Минимальный заказ {v}" },
+  noResults:     { uz: "Hech narsa topilmadi", en: "Nothing found", ru: "Ничего не найдено" },
+  pickup:        { uz: "Olib ketish", en: "Pickup", ru: "Самовывоз" },
+  delivery2:     { uz: "Yetkazish", en: "Delivery", ru: "Доставка" },
+  needAddress:   { uz: "Yetkazish manzilini tanlang", en: "Choose a delivery address", ru: "Выберите адрес доставки" },
+  addAddr2:      { uz: "Manzil qo‘shish", en: "Add an address", ru: "Добавить адрес" },
+  discount:      { uz: "Chegirma", en: "Discount", ru: "Скидка" },
+  cashOnly:      { uz: "Hozircha faqat naqd to‘lov", en: "Cash only for now", ru: "Пока только наличные" },
+  orderFail:     { uz: "Buyurtma berib bo‘lmadi", en: "Couldn’t place the order", ru: "Не удалось оформить заказ" },
+  browserPreview:{ uz: "Brauzer rejimi", en: "Browser preview", ru: "Режим браузера" },
+  apiOk:         { uz: "API ulandi", en: "API connected", ru: "API подключён" },
+  apiAuth:       { uz: "API ishlayapti · Telegram orqali kiring", en: "API reachable · sign in via Telegram", ru: "API доступен · вход через Telegram" },
+  apiErr:        { uz: "API javob bermadi", en: "API not responding", ru: "API не отвечает" },
 };
 
-export function t(key, lang) {
+export function t(key, lang, params) {
   const e = STRINGS[key];
-  return e ? (e[lang] || e.uz) : key;
+  let s = e ? (e[lang] || e.uz) : key;
+  if (params) s = s.replace(/\{(\w+)\}/g, (m, k) => (params[k] != null ? params[k] : m));
+  return s;
+}
+
+// Localized label for a cart/order conflict `code`, falling back to a generic
+// message so an unmapped server code never leaks the raw key to the UI.
+export function cf(code, lang) {
+  const key = "cf_" + code;
+  return STRINGS[key] ? t(key, lang) : t("cf_error", lang);
 }

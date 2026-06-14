@@ -2,54 +2,52 @@
   <div class="push-anim" style="min-height:100%">
     <TopBar :title="t('checkout', store.lang)" @back="router.back()" />
     <div class="co2">
+      <!-- order type -->
+      <div class="segmented" style="margin-top:4px">
+        <button :class="{ on: orderType === 'DELIVERY' }" @click="orderType = 'DELIVERY'">{{ t("delivery2", store.lang) }}</button>
+        <button :class="{ on: orderType === 'PICKUP' }" @click="orderType = 'PICKUP'">{{ t("pickup", store.lang) }}</button>
+      </div>
+
       <!-- order summary -->
       <div class="lbl">{{ t("yourOrder", store.lang) }}<span class="ed press" @click="router.back()">{{ t("edit", store.lang) }}</span></div>
       <div class="co-summary">
         <div class="thumbs">
-          <div v-for="(x, i) in foods.slice(0, 3)" :key="i" class="th"><FoodArt :kind="x.f.kind" :hue="x.f.hue" /></div>
-          <div v-if="foods.length > 3" class="more">+{{ foods.length - 3 }}</div>
+          <div v-for="(it, i) in store.cart.slice(0, 3)" :key="i" class="th">
+            <img v-if="it.snapshot.image_url" :src="it.snapshot.image_url" :alt="foodName(it.snapshot, store.lang)" />
+            <FoodArt v-else :kind="it.snapshot.kind" :hue="it.snapshot.hue" />
+          </div>
+          <div v-if="store.cart.length > 3" class="more">+{{ store.cart.length - 3 }}</div>
         </div>
         <div class="ct">
           <div class="a">{{ count }} {{ t("items", store.lang) }}</div>
-          <div class="b">{{ foods.map(x => foodName(x.f, store.lang)).join(", ") }}</div>
+          <div class="b">{{ store.cart.map(it => foodName(it.snapshot, store.lang)).join(", ") }}</div>
         </div>
       </div>
 
-      <!-- address -->
-      <div class="lbl">{{ t("deliveryAddr", store.lang) }}</div>
-      <div class="addr-card">
-        <MiniMap
-          v-if="selectedAddress && selectedAddress.lat != null"
-          :lat="selectedAddress.lat"
-          :lng="selectedAddress.lng"
-          :height="92"
-          class="addr-mini"
-        />
-        <div v-else class="addr-map">
-          <span class="road"></span><span class="road b"></span>
-          <span class="pin"><Icon name="pin" :size="26" /></span>
+      <!-- address (DELIVERY only) -->
+      <template v-if="orderType === 'DELIVERY'">
+        <div class="lbl">{{ t("deliveryAddr", store.lang) }}</div>
+        <div v-if="selectedAddress" class="addr-card">
+          <MiniMap v-if="selectedAddress.lat != null" :lat="selectedAddress.lat" :lng="selectedAddress.lng" :height="92" class="addr-mini" />
+          <div v-else class="addr-map"><span class="road"></span><span class="road b"></span><span class="pin"><Icon name="pin" :size="26" /></span></div>
+          <div class="addr-body">
+            <span class="tag"><Icon name="pin" :size="12" /> {{ selectedAddress.label || t("home2", store.lang) }}</span>
+            <div class="ad">{{ selectedAddress.line }}</div>
+            <div v-if="addrDetail" class="ad2">{{ addrDetail }}</div>
+            <div class="ch press" @click="router.push('/addresses')">{{ t("change", store.lang) }}</div>
+          </div>
         </div>
-        <div class="addr-body">
-          <span class="tag"><Icon name="pin" :size="12" /> {{ selectedAddress ? selectedAddress.tag : t("home2", store.lang) }}</span>
-          <div class="ad">{{ selectedAddress ? selectedAddress.text : "—" }}</div>
-          <div v-if="addrDetail" class="ad2">{{ addrDetail }}</div>
-          <div class="ch press" @click="router.push('/addresses')">{{ t("change", store.lang) }}</div>
+        <button v-else class="addbtn press" @click="router.push('/address/edit')">
+          <Icon name="plus" :size="20" /> {{ t("addAddr2", store.lang) }}
+        </button>
+        <div class="note-in">
+          <Icon name="chat" :size="18" />
+          <input v-model="note" :placeholder="t('notePh', store.lang)" />
         </div>
-      </div>
-      <div class="note-in">
+      </template>
+      <div v-else class="note-in" style="margin-top:14px">
         <Icon name="chat" :size="18" />
         <input v-model="note" :placeholder="t('notePh', store.lang)" />
-      </div>
-
-      <!-- when -->
-      <div class="lbl">{{ t("when", store.lang) }}</div>
-      <div class="slots">
-        <button :class="['slot', 'press', { on: slot === 'asap' }]" @click="slot = 'asap'">
-          <div class="a">{{ t("asap", store.lang).split(" ")[0] }} ⚡</div><div class="b">25–35 {{ t("min", store.lang) }}</div>
-        </button>
-        <button v-for="s in slots" :key="s" :class="['slot', 'press', { on: slot === s }]" @click="slot = s">
-          <div class="a">{{ s }}</div><div class="b">{{ t("today", store.lang) }}</div>
-        </button>
       </div>
 
       <!-- payment -->
@@ -60,71 +58,101 @@
           <span class="pi"><Icon name="cash" :size="20" /></span>
           <div class="a">{{ t("cash", store.lang) }}</div><div class="b">{{ t("delivery", store.lang).toLowerCase() }}</div>
         </button>
-        <button :class="['pay-card', 'press', { on: pay === 'card' }]" @click="pay = 'card'">
+        <button :class="['pay-card', 'press', { on: pay === 'card', disabled: !cardAllowed }]" :disabled="!cardAllowed" @click="cardAllowed && (pay = 'card')">
           <span class="tick"><Icon name="check" /></span>
           <span class="pi"><Icon name="card" :size="20" /></span>
-          <div class="a">{{ t("card", store.lang) }}</div><div class="b">•••• 4821</div>
+          <div class="a">{{ t("card", store.lang) }}</div><div class="b">{{ cardAllowed ? "••••" : t("comingSoon", store.lang) }}</div>
         </button>
       </div>
+      <div v-if="!cardAllowed" class="pay-note">{{ t("cashOnly", store.lang) }}</div>
+
+      <!-- loyalty points -->
+      <template v-if="loyaltyOn && pointsAvailable > 0">
+        <div class="lbl">{{ t("usePoints", store.lang) }}</div>
+        <div class="points-row">
+          <div class="pl">
+            <Icon name="star" :size="16" filled />
+            <span>{{ grouped(pointsAvailable) }} {{ t("points", store.lang) }}</span>
+          </div>
+          <SwitchToggle :on="usePoints" @toggle="usePoints = !usePoints" />
+        </div>
+      </template>
 
       <!-- tip -->
       <div class="lbl">{{ t("tipCourier", store.lang) }}</div>
       <div class="tips">
-        <button v-for="v in TIPS" :key="v" :class="['tip-chip', 'press', { on: tip === v }]" @click="tip = v">
+        <button v-for="v in tipOptions" :key="v" :class="['tip-chip', 'press', { on: tip === v }]" @click="tip = v">
           {{ v === 0 ? "—" : (v / 1000) + "k" }}
         </button>
       </div>
       <div class="tip-note">{{ t("tipNote", store.lang) }}</div>
 
-      <!-- totals -->
+      <!-- totals (authoritative server quote) -->
       <div class="totals" style="margin-top:20px">
-        <div class="tr"><span>{{ t("subtotal", store.lang) }}</span><span>{{ sum(cartSubtotal, store.lang) }}</span></div>
-        <div v-if="cartDiscount > 0" class="tr"><span class="disc">SMART50</span><span class="disc">−{{ sum(cartDiscount, store.lang) }}</span></div>
-        <div class="tr"><span>{{ t("delivery", store.lang) }}</span><span :class="{ free: cartDelivery === 0 }">{{ cartDelivery === 0 ? t("free", store.lang) : sum(cartDelivery, store.lang) }}</span></div>
-        <div v-if="tip > 0" class="tr"><span>{{ t("tipCourier", store.lang) }}</span><span>{{ sum(tip, store.lang) }}</span></div>
-        <div class="tr grand"><span>{{ t("total", store.lang) }}</span><b>{{ sum(grandTotal, store.lang) }}</b></div>
+        <div class="tr"><span>{{ t("subtotal", store.lang) }}</span><span>{{ sum(totals.subtotal, store.lang) }}</span></div>
+        <div v-if="totals.discount > 0" class="tr"><span class="disc">{{ t("discount", store.lang) }}</span><span class="disc">−{{ sum(totals.discount, store.lang) }}</span></div>
+        <div v-if="orderType === 'DELIVERY'" class="tr"><span>{{ t("delivery", store.lang) }}</span><span :class="{ free: totals.deliveryFee === 0 }">{{ totals.deliveryFee === 0 ? t("free", store.lang) : sum(totals.deliveryFee, store.lang) }}</span></div>
+        <div v-if="totals.tip > 0" class="tr"><span>{{ t("tipCourier", store.lang) }}</span><span>{{ sum(totals.tip, store.lang) }}</span></div>
+        <div class="tr grand"><span>{{ t("total", store.lang) }}</span><b>{{ sum(totals.total, store.lang) }}</b></div>
+        <div v-if="loyaltyOn && totals.earned > 0" class="earn">+{{ totals.earned }} {{ t("points", store.lang) }}</div>
       </div>
-      <div style="height:110px"></div>
+
+      <div v-if="submitError" class="cart-warn"><Icon name="info" :size="18" /> {{ submitError }}</div>
+      <div style="height:120px"></div>
     </div>
+
     <div class="actionbar">
-      <button class="cta press" @click="place">{{ t("placeOrder", store.lang) }} <span class="tp">· {{ sum(grandTotal, store.lang) }}</span></button>
+      <button class="cta press" :disabled="!canSubmit || submitting" @click="place">
+        <span v-if="submitting" class="spinner-sm"></span>
+        <template v-else>{{ t("placeOrder", store.lang) }} <span class="tp">· {{ sum(totals.total, store.lang) }}</span></template>
+      </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import Icon from "../components/Icon.js";
 import FoodArt from "../components/FoodArt.js";
 import TopBar from "../components/TopBar.vue";
 import MiniMap from "../components/MiniMap.vue";
-import { store, placeOrder, cartSubtotal, cartDiscount, cartDelivery, selectedAddress } from "../store.js";
-import { t } from "../data/strings.js";
-import { foodById, foodName, sum } from "../data/foods.js";
+import SwitchToggle from "../components/SwitchToggle.vue";
+import { store, selectedAddress, requestQuote, submitOrder, loadLoyalty, cartSubtotal, cartDelivery, cartTotalEstimate } from "../store.js";
+import { ClosedError, ConflictError, ApiError } from "../api/index.js";
+import { t, cf } from "../data/strings.js";
+import { foodName, sum } from "../data/foods.js";
 
 const router = useRouter();
+const orderType = ref("DELIVERY");
 const pay = ref("cash");
-const slot = ref("asap");
-const tip = ref(3000);
+const tip = ref(0);
 const note = ref("");
-const TIPS = [0, 3000, 5000, 10000];
+const usePoints = ref(false);
+const submitting = ref(false);
+const submitError = ref("");
 
-function futureSlots() {
-  const base = new Date(Date.now() + 45 * 60000);
-  base.setMinutes(base.getMinutes() < 30 ? 30 : 60, 0, 0);
-  const out = [];
-  for (let i = 0; i < 3; i++) {
-    const d = new Date(base.getTime() + i * 30 * 60000);
-    out.push(`${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`);
-  }
-  return out;
-}
-const slots = futureSlots();
+const cardAllowed = computed(() => !!(store.config && store.config.featureFlags && store.config.featureFlags.card_payments));
+const loyaltyOn = computed(() => !!(store.config && store.config.featureFlags && store.config.featureFlags.loyalty));
+const pointsAvailable = computed(() => (store.loyalty ? store.loyalty.points : (store.me ? store.me.points : 0)));
+const pointsUsed = computed(() => (usePoints.value ? pointsAvailable.value : 0));
 
-const foods = computed(() => store.cart.map(c => ({ f: foodById(c.foodId), qty: c.qty })).filter(x => x.f));
+const tipOptions = computed(() => {
+  const o = store.config && store.config.defaultTipOptions;
+  return o && o.length ? o : [0, 5000, 10000, 20000];
+});
+
 const count = computed(() => store.cart.reduce((s, i) => s + i.qty, 0));
-const grandTotal = computed(() => cartSubtotal.value - cartDiscount.value + cartDelivery.value + tip.value);
+const grouped = (n) => (n || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+
+// Authoritative totals from the server quote, with a local fallback.
+const totals = computed(() => {
+  const q = store.quote;
+  if (q) return { subtotal: q.subtotal, deliveryFee: q.deliveryFee, discount: q.discount, tip: q.tip, total: q.total, earned: q.loyaltyPointsEarned };
+  const sub = cartSubtotal.value;
+  const del = orderType.value === "PICKUP" ? 0 : cartDelivery.value;
+  return { subtotal: sub, deliveryFee: del, discount: 0, tip: tip.value, total: sub + del + tip.value, earned: 0 };
+});
 
 const addrDetail = computed(() => {
   const a = selectedAddress.value;
@@ -137,17 +165,64 @@ const addrDetail = computed(() => {
   return parts.join(" · ");
 });
 
-onMounted(() => { if (store.cart.length === 0) router.replace("/cart"); });
+const canSubmit = computed(() =>
+  store.cart.length > 0 &&
+  !(orderType.value === "DELIVERY" && !selectedAddress.value) &&
+  !store.catalogClosed
+);
 
-function place() {
-  const order = placeOrder(grandTotal.value, {
-    note: note.value, payment: pay.value, tip: tip.value, slot: slot.value,
-  });
-  router.replace(`/tracking/${order.id}`);
+function reprice() {
+  if (!store.cart.length) return;
+  requestQuote({ orderType: orderType.value, tip: tip.value, pointsUsed: pointsUsed.value });
 }
+
+async function place() {
+  if (!canSubmit.value || submitting.value) return;
+  submitError.value = "";
+  submitting.value = true;
+  try {
+    const order = await submitOrder({
+      orderType: orderType.value,
+      addressId: orderType.value === "DELIVERY" && selectedAddress.value ? selectedAddress.value.id : null,
+      phone: store.me ? store.me.phone : "",
+      note: note.value,
+      tip: tip.value,
+      pointsUsed: pointsUsed.value,
+      paymentMethod: pay.value === "card" && cardAllowed.value ? "CARD" : "CASH",
+    });
+    router.replace(`/tracking/${order.id}`);
+  } catch (e) {
+    if (e instanceof ClosedError) submitError.value = t(e.reason === "no_cashier" ? "noCashierT" : "closedT", store.lang);
+    else if (e instanceof ConflictError) submitError.value = cf(e.code, store.lang);
+    else if (e instanceof ApiError && e.httpStatus === 422 && e.errors && e.errors.address_id) submitError.value = t("needAddress", store.lang);
+    else if (e instanceof ApiError && e.httpStatus === 404) submitError.value = t("needAddress", store.lang);
+    else submitError.value = t("orderFail", store.lang);
+  } finally {
+    submitting.value = false;
+  }
+}
+
+onMounted(() => {
+  if (store.cart.length === 0) { router.replace("/cart"); return; }
+  if (!store.loyalty) loadLoyalty();
+  reprice();
+});
+watch([orderType, tip, usePoints], reprice);
 </script>
 
 <style scoped>
 .addr-mini { width: 92px; flex: none; border-radius: 0; }
 .addr-body .ad2 { font-size: 11px; color: var(--text-faint); font-weight: 700; margin-top: 4px; }
+.thumbs .th img { width: 100%; height: 100%; object-fit: cover; }
+.pay-card.disabled, .pay-card:disabled { opacity: .55; }
+.pay-note { font-size: 11.5px; font-weight: 700; color: var(--text-faint); margin: 8px 2px 0; }
+.points-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--hairline); border-radius: 16px; }
+.points-row .pl { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 14px; color: var(--star); }
+.points-row .pl span { color: var(--text); }
+.totals .earn { text-align: right; font-size: 12px; font-weight: 800; color: var(--accent-2); margin-top: 6px; }
+.cart-warn { display: flex; align-items: center; gap: 8px; margin-top: 14px; padding: 12px 14px; border-radius: 14px; background: color-mix(in srgb, #ef5b6e 14%, var(--surface)); border: 1px solid color-mix(in srgb, #ef5b6e 30%, transparent); color: #ef5b6e; font-weight: 700; font-size: 12.5px; }
+.addbtn { width: 100%; height: 54px; border-radius: 16px; border: 1.5px dashed var(--hairline-strong); display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 800; font-size: 14px; color: var(--accent); }
+.cta:disabled { opacity: .55; }
+.spinner-sm { width: 20px; height: 20px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,.4); border-top-color: #fff; animation: cspin .8s linear infinite; }
+@keyframes cspin { to { transform: rotate(360deg); } }
 </style>

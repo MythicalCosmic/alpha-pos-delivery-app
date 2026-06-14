@@ -44,6 +44,8 @@ const ICONS = {
   target: { c: () => [C(12,12,7.5), P("M12 1.8v3.4M12 18.8v3.4M1.8 12h3.4M18.8 12h3.4"), C(12,12,1.4,{ fill: "currentColor", stroke: "none" })] },
   edit: { c: () => [P("M4 20h4.5L19 9.5 14.5 5 4 15.5V20Z"), P("M13.5 6l4.5 4.5")] },
   navigation: { c: () => [P("M3 11 21 4l-7 17-2.5-7L3 11Z")] },
+  info: { c: () => [C(12,12,8.5), P("M12 11v5"), C(12,7.8,0.6,{ fill: "currentColor", stroke: "none" })] },
+  refresh: { c: () => [P("M20 11A8 8 0 0 0 6.3 6.3L4 8.5M4 4v4.5h4.5"), P("M4 13a8 8 0 0 0 13.7 4.7L20 15.5M20 20v-4.5h-4.5")] },
 };
 
 export default {

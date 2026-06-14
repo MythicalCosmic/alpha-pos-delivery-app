@@ -91,6 +91,18 @@ export function openLocationSettings() {
   if (lm && typeof lm.openSettings === "function") { try { lm.openSettings(); } catch (e) { /* ignore */ } }
 }
 
+// Native confirm dialog (Telegram popup when available, else window.confirm).
+// Resolves true if the user confirms.
+export function confirmDialog(message) {
+  return new Promise((resolve) => {
+    if (tg && typeof tg.showConfirm === "function") {
+      try { tg.showConfirm(message, (ok) => resolve(!!ok)); return; }
+      catch (e) { /* fall through */ }
+    }
+    resolve(typeof window !== "undefined" && typeof window.confirm === "function" ? window.confirm(message) : true);
+  });
+}
+
 // Haptic feedback helpers (no-op outside Telegram).
 export function haptic(type = "light") {
   if (!tg || !tg.HapticFeedback) return;

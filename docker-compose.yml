@@ -1,0 +1,31 @@
+# ===== Smart Food — Telegram Mini App =====
+# Build the static bundle and serve it behind nginx with a same-origin
+# reverse proxy to the backend. Configure via .env (see .env.example) or env vars:
+#   BACKEND_ORIGIN         backend the /api/smartfood path is proxied to
+#   WEBAPP_PORT            host port to expose (default 8080)
+#   VITE_YANDEX_MAPS_KEY   Yandex JS Maps + Geocoder key (public; baked at build)
+#
+#   docker compose up -d --build
+#   -> Mini App at http://localhost:${WEBAPP_PORT}/webapp/
+#   -> set the backend's CUSTOMER_WEBAPP_URL to https://<public-host>/webapp/
+
+services:
+  webapp:
+    build:
+      context: .
+      args:
+        VITE_API_BASE: ${VITE_API_BASE:-/api/smartfood}
+        VITE_YANDEX_MAPS_KEY: ${VITE_YANDEX_MAPS_KEY:-}
+        VITE_TRACK_POLL_MS: ${VITE_TRACK_POLL_MS:-}
+    image: smartfood-webapp:latest
+    container_name: smartfood-webapp
+    environment:
+      BACKEND_ORIGIN: ${BACKEND_ORIGIN:-https://pos.78.111.90.65.nip.io}
+    ports:
+      - "${WEBAPP_PORT:-8080}:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

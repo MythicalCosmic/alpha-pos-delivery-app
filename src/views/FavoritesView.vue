@@ -18,7 +18,6 @@ import Icon from "../components/Icon.js";
 import FoodRow from "../components/FoodRow.vue";
 import { store } from "../store.js";
 import { t } from "../data/strings.js";
-import { FOODS } from "../data/foods.js";
 
-const favs = computed(() => FOODS.filter(f => store.favorites.includes(f.id)));
+const favs = computed(() => store.favorites);
 </script>

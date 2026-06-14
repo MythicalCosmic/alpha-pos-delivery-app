@@ -1,88 +1,193 @@
 <template>
   <div v-if="order" class="track-screen">
-    <div class="tmap">
-      <div class="blk" style="left:30px;top:40px;width:54px;height:70px"></div>
-      <div class="blk" style="left:110px;top:90px;width:80px;height:50px"></div>
-      <div class="blk" style="right:40px;top:120px;width:70px;height:64px"></div>
-      <div class="blk" style="right:120px;top:30px;width:50px;height:46px"></div>
+    <div class="thero" :data-status="order.status">
       <div class="nav"><button class="iconbtn press" @click="goHome"><Icon name="back" /></button></div>
-      <svg class="route" viewBox="0 0 380 240" preserveAspectRatio="none">
-        <path d="M 60 175 C 150 120, 250 200, 340 70" fill="none" stroke="var(--accent)" stroke-width="3" stroke-dasharray="2 9" stroke-linecap="round" opacity="0.9" />
-      </svg>
-      <span class="pin shop" style="left:16%;top:78%"><span class="dotpin"><Icon name="store" :size="16" /></span></span>
-      <span class="pin dest" style="left:89%;top:33%"><span class="dotpin"><Icon name="pin" :size="16" /></span></span>
-      <div class="scooter"><Icon name="scooter" :size="26" /></div>
-    </div>
-
-    <div class="eta">
-      <span class="pill"><span class="d"></span> {{ t("preparing", store.lang) }}</span>
-      <div class="big">~28 {{ t("min", store.lang) }}</div>
-      <div class="sub">{{ t("orderOnWay", store.lang) }} · #{{ order.id }}</div>
-    </div>
-
-    <div class="courier">
-      <div class="cav"><Icon name="user" :size="26" /></div>
-      <div class="cb">
-        <div class="lbl2">{{ t("courierLbl", store.lang) }}</div>
-        <div class="nm">Jamshid R.</div>
-        <div class="rt"><Icon name="star" :size="13" filled /> 4.9 · Yamaha</div>
+      <div class="thero-ic">
+        <Icon :name="heroIcon" :size="40" />
       </div>
-      <div class="acts">
-        <button class="press"><Icon name="chat" :size="20" /></button>
-        <button class="fill press"><Icon name="phone" :size="20" /></button>
-      </div>
+      <div class="thero-t">{{ t(statusKey, store.lang) }}</div>
+      <div class="thero-s">{{ statusSub }}</div>
+      <div class="thero-code">{{ order.code }}</div>
     </div>
 
-    <div class="tline">
-      <div v-for="(s, i) in steps" :key="i" :class="['tstep', s.state]">
-        <div class="ico">
-          <Icon v-if="s.state === 'done'" name="check" />
-          <Icon v-else-if="s.key === 'preparing'" name="fire" :size="19" />
-          <Icon v-else-if="s.key === 'stReady'" name="scooter" :size="19" />
-          <Icon v-else name="bag" :size="19" />
+    <div class="px" style="margin-top:18px">
+      <!-- queue / kitchen -->
+      <div v-if="order.posOrder" class="pos-card">
+        <div class="pc-row">
+          <span class="pc-l">{{ t("queueNo", store.lang) }}</span>
+          <span class="pc-v">#{{ order.posOrder.displayId }}</span>
         </div>
-        <div class="line"></div>
-        <div class="tx"><div class="a">{{ t(s.key, store.lang) }}</div><div class="b">{{ s.time }}</div></div>
+        <div class="pc-row">
+          <span class="pc-l">{{ t("preparing", store.lang) }}</span>
+          <span class="pc-badge">{{ kitchenStatus }}</span>
+        </div>
       </div>
-    </div>
 
-    <div class="px">
-      <div class="totals">
-        <div class="tr"><span>{{ count }} {{ t("items", store.lang) }}</span><span>{{ foodSummary }}</span></div>
-        <div class="tr grand"><span>{{ t("total", store.lang) }}</span><b>{{ sum(order.total, store.lang) }}</b></div>
+      <!-- timeline (active orders) -->
+      <div v-if="isActive" class="tline">
+        <div v-for="(s, i) in steps" :key="i" :class="['tstep', s.state]">
+          <div class="ico">
+            <Icon v-if="s.state === 'done'" name="check" />
+            <Icon v-else-if="s.key === 'kPreparing'" name="fire" :size="19" />
+            <Icon v-else name="bag" :size="19" />
+          </div>
+          <div class="line"></div>
+          <div class="tx"><div class="a">{{ t(s.key, store.lang) }}</div></div>
+        </div>
       </div>
+
+      <!-- rejection reason -->
+      <div v-if="order.status === 'REJECTED' && order.rejectReason" class="reject-box">
+        <Icon name="info" :size="18" /> {{ order.rejectReason }}
+      </div>
+
+      <!-- address -->
+      <div v-if="order.orderType === 'DELIVERY' && order.addressText" class="addr-line">
+        <Icon name="pin" :size="16" /> {{ order.addressText }}
+      </div>
+
+      <!-- totals -->
+      <div class="totals" style="margin-top:14px">
+        <div class="tr"><span>{{ count }} {{ t("items", store.lang) }}</span><span>{{ sum(order.totals.subtotal, store.lang) }}</span></div>
+        <div v-if="order.totals.deliveryFee" class="tr"><span>{{ t("delivery", store.lang) }}</span><span>{{ sum(order.totals.deliveryFee, store.lang) }}</span></div>
+        <div v-if="order.totals.discount" class="tr"><span class="disc">{{ t("discount", store.lang) }}</span><span class="disc">−{{ sum(order.totals.discount, store.lang) }}</span></div>
+        <div v-if="order.totals.tip" class="tr"><span>{{ t("tipCourier", store.lang) }}</span><span>{{ sum(order.totals.tip, store.lang) }}</span></div>
+        <div class="tr grand"><span>{{ t("total", store.lang) }}</span><b>{{ sum(order.totals.total, store.lang) }}</b></div>
+      </div>
+
       <div style="height:12px"></div>
+      <button v-if="order.status === 'PENDING'" class="cancel-btn press" :disabled="canceling" @click="doCancel">
+        {{ t("cancelOrder", store.lang) }}
+      </button>
+      <div v-if="cancelErr" class="reject-box" style="margin-top:10px"><Icon name="info" :size="18" /> {{ cancelErr }}</div>
+      <div style="height:8px"></div>
       <button class="ghost press" style="width:100%;height:52px;border-radius:16px;background:var(--surface);border:1px solid var(--hairline);font-weight:800;font-size:14px;color:var(--text)" @click="router.push('/orders')">{{ t("viewOrder", store.lang) }}</button>
       <div style="height:10px"></div>
       <button class="cta press" style="width:100%" @click="goHome">{{ t("backHome", store.lang) }}</button>
       <div style="height:24px"></div>
     </div>
   </div>
+
+  <div v-else-if="loadFailed" class="empty" style="min-height:80vh">
+    <div class="ei"><Icon name="receipt" /></div><h3>{{ t("nothingHere", store.lang) }}</h3>
+    <button class="cta press" style="margin-top:18px;max-width:220px" @click="router.replace('/orders')">{{ t("viewOrder", store.lang) }}</button>
+  </div>
+  <div v-else class="empty" style="min-height:80vh"><span class="spinner"></span></div>
 </template>
 
 <script setup>
-import { computed, onMounted } from "vue";
+import { computed, onMounted, onBeforeUnmount, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import Icon from "../components/Icon.js";
-import { store } from "../store.js";
+import { store, loadOrder, trackOrder, cancelOrder } from "../store.js";
+import { ConflictError } from "../api/index.js";
 import { t } from "../data/strings.js";
-import { foodById, foodName, sum } from "../data/foods.js";
+import { sum } from "../data/foods.js";
+import { TRACK_POLL_MS } from "../config.js";
+import { confirmDialog } from "../telegram.js";
 
 const route = useRoute();
 const router = useRouter();
-const order = computed(() => store.orders.find(o => o.id === route.params.id));
+const id = Number(route.params.id) || route.params.id;
 
-const steps = [
-  { key: "stConfirmed", time: "13:24", state: "done" },
-  { key: "preparing", time: "13:26", state: "active" },
-  { key: "stReady", time: "~13:38", state: "" },
-  { key: "delivered", time: "~13:52", state: "" },
-];
+const order = computed(() => store.orderCache[id] || null);
+const loadFailed = ref(false);
+const canceling = ref(false);
+const cancelErr = ref("");
+let timer = null;
 
-const foods = computed(() => (order.value?.items || []).map(it => foodById(it.foodId)).filter(Boolean));
-const count = computed(() => (order.value?.items || []).reduce((s, i) => s + i.qty, 0));
-const foodSummary = computed(() => foods.value.map(f => foodName(f, store.lang)).join(", ").slice(0, 28) + "…");
+const isActive = computed(() => order.value && (order.value.status === "PENDING" || order.value.status === "DISPATCHED"));
+const count = computed(() => (order.value ? order.value.items.reduce((s, i) => s + i.quantity, 0) : 0));
+
+const statusKey = computed(() => ({
+  PENDING: "stPending", DISPATCHED: "stDispatched", REJECTED: "stRejected", CANCELED: "stCanceled",
+}[order.value && order.value.status] || "stPending"));
+
+const statusSub = computed(() => {
+  if (!order.value) return "";
+  if (order.value.status === "PENDING") return t("awaitingSub", store.lang);
+  if (order.value.status === "DISPATCHED") return t("orderOnWay", store.lang);
+  if (order.value.status === "REJECTED") return t("stRejected", store.lang);
+  return t("stCanceled", store.lang);
+});
+
+const heroIcon = computed(() => ({
+  PENDING: "clock", DISPATCHED: "scooter", REJECTED: "close", CANCELED: "close",
+}[order.value && order.value.status] || "clock"));
+
+const kitchenStatus = computed(() => {
+  const s = order.value && order.value.posOrder && order.value.posOrder.status;
+  if (s === "PREPARING") return t("kPreparing", store.lang);
+  if (s === "READY") return t("kReady", store.lang);
+  return s || "";
+});
+
+const steps = computed(() => {
+  const st = order.value ? order.value.status : "PENDING";
+  const ready = order.value && order.value.posOrder && order.value.posOrder.status === "READY";
+  const done2 = st === "DISPATCHED";
+  return [
+    { key: "stPending", state: "done" },
+    { key: "stDispatched", state: done2 ? "done" : "active" },
+    { key: "kPreparing", state: ready ? "done" : (done2 ? "active" : "") },
+  ];
+});
+
+async function poll() {
+  try { await trackOrder(id, {}); loadFailed.value = false; }
+  catch { if (!order.value) loadFailed.value = true; }
+}
+
+async function doCancel() {
+  if (canceling.value) return;
+  const ok = await confirmDialog(t("cancelAsk", store.lang));
+  if (!ok) return;
+  canceling.value = true;
+  cancelErr.value = "";
+  try {
+    await cancelOrder(id);
+  } catch (e) {
+    // Status can race the poll: the order may have left PENDING before we tapped.
+    cancelErr.value = e instanceof ConflictError ? t("cannotCancel", store.lang) : t("orderFail", store.lang);
+  } finally {
+    canceling.value = false;
+  }
+}
 
 function goHome() { router.push("/home"); }
-onMounted(() => { if (!order.value) router.replace("/orders"); });
+
+onMounted(async () => {
+  try {
+    if (!order.value) await loadOrder(id);
+  } catch { loadFailed.value = true; }
+  // Poll while the order is still in flight.
+  timer = setInterval(() => {
+    if (order.value && (order.value.status === "PENDING" || order.value.status === "DISPATCHED")) poll();
+  }, TRACK_POLL_MS);
+});
+onBeforeUnmount(() => { if (timer) clearInterval(timer); });
 </script>
+
+<style scoped>
+.thero { position: relative; padding: 56px 20px 26px; display: flex; flex-direction: column; align-items: center; text-align: center; background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 22%, var(--surface)), var(--surface)); }
+.thero[data-status="REJECTED"], .thero[data-status="CANCELED"] { background: linear-gradient(160deg, color-mix(in srgb, #ef5b6e 18%, var(--surface)), var(--surface)); }
+.thero .nav { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 12px); left: 14px; }
+.thero .iconbtn { width: 42px; height: 42px; border-radius: 13px; background: var(--surface); color: var(--text); display: grid; place-items: center; box-shadow: 0 6px 18px rgba(0,0,0,.2); }
+.thero-ic { width: 78px; height: 78px; border-radius: 26px; background: var(--surface); color: var(--accent); display: grid; place-items: center; box-shadow: var(--shadow-accent); margin-bottom: 14px; }
+.thero[data-status="REJECTED"] .thero-ic, .thero[data-status="CANCELED"] .thero-ic { color: #ef5b6e; box-shadow: none; }
+.thero-t { font-family: var(--font-display); font-weight: 700; font-size: 22px; color: var(--text); }
+.thero-s { font-size: 13px; font-weight: 600; color: var(--text-dim); margin-top: 6px; }
+.thero-code { margin-top: 12px; font-weight: 800; font-size: 13px; color: var(--accent); background: var(--surface); padding: 6px 14px; border-radius: 999px; }
+.pos-card { background: var(--surface); border: 1px solid var(--hairline); border-radius: 18px; padding: 6px 16px; margin-bottom: 14px; }
+.pc-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; }
+.pc-row + .pc-row { border-top: 1px solid var(--hairline); }
+.pc-l { font-size: 13px; font-weight: 700; color: var(--text-dim); }
+.pc-v { font-family: var(--font-display); font-weight: 700; font-size: 22px; color: var(--accent); }
+.pc-badge { font-weight: 800; font-size: 12px; color: var(--accent-2); background: color-mix(in srgb, var(--accent-2) 14%, transparent); padding: 5px 12px; border-radius: 999px; }
+.reject-box { display: flex; align-items: center; gap: 8px; margin: 4px 0 14px; padding: 12px 14px; border-radius: 14px; background: color-mix(in srgb, #ef5b6e 14%, var(--surface)); border: 1px solid color-mix(in srgb, #ef5b6e 30%, transparent); color: #ef5b6e; font-weight: 700; font-size: 12.5px; }
+.addr-line { display: flex; align-items: center; gap: 8px; margin: 4px 0 4px; font-size: 12.5px; font-weight: 700; color: var(--text-dim); }
+.cancel-btn { width: 100%; height: 52px; border-radius: 16px; background: color-mix(in srgb, #ef5b6e 14%, var(--surface)); border: 1px solid color-mix(in srgb, #ef5b6e 30%, transparent); color: #ef5b6e; font-weight: 800; font-size: 14px; }
+.cancel-btn:disabled { opacity: .5; }
+.spinner { width: 32px; height: 32px; border-radius: 50%; border: 3px solid color-mix(in srgb, var(--accent) 25%, transparent); border-top-color: var(--accent); animation: tspin .8s linear infinite; }
+@keyframes tspin { to { transform: rotate(360deg); } }
+</style>

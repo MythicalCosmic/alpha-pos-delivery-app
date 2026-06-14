@@ -3,10 +3,11 @@
     <div class="page-head" style="padding-left:0;padding-right:0"><h1>{{ t("tSettings", store.lang) }}</h1></div>
 
     <div class="profile-card press" style="margin-top:14px" @click="go('/profile')">
-      <div class="pa"><Icon name="user" :size="30" /></div>
+      <img v-if="photo" :src="photo" class="pa" :alt="name" />
+      <div v-else class="pa"><Icon name="user" :size="30" /></div>
       <div class="pi">
-        <div class="pn">{{ store.user.name }}</div>
-        <span class="pm"><Icon name="star" :size="13" filled /> Smart Gold · 1 250 {{ t("points", store.lang) }}</span>
+        <div class="pn">{{ name }}</div>
+        <span class="pm"><Icon name="star" :size="13" filled /> Smart Club · {{ grouped(points) }} {{ t("points", store.lang) }}</span>
       </div>
       <span style="margin-left:auto;color:rgba(255,255,255,.8)"><Icon name="chevron" :size="22" /></span>
     </div>
@@ -58,15 +59,20 @@ import { haptic } from "../telegram.js";
 const router = useRouter();
 const langs = [{ id: "uz", fl: "🇺🇿", n: "O‘zbek" }, { id: "en", fl: "🇬🇧", n: "English" }, { id: "ru", fl: "🇷🇺", n: "Русский" }];
 
+const name = computed(() => (store.me && store.me.name) || "Smart");
+const photo = computed(() => store.me && store.me.photoUrl);
+const points = computed(() => (store.me ? store.me.points : 0));
+const grouped = (n) => (n || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+
 const rows = computed(() => [
-  { icon: "pin", key: "addresses", path: "/addresses", sub: selectedAddress.value ? selectedAddress.value.text : "" },
+  { icon: "pin", key: "addresses", path: "/addresses", sub: selectedAddress.value ? selectedAddress.value.line : "" },
   { icon: "card", key: "payments", path: "/payments", sub: defaultCardSub.value },
   { icon: "bell", key: "notifs", path: "/notifications", sub: "" },
   { icon: "gift", key: "loyalty", path: "/loyalty", sub: "Smart Club" },
   { icon: "help", key: "support", path: "/support", sub: "" },
 ]);
 const defaultCardSub = computed(() => {
-  const c = store.cards.find(x => x.default) || store.cards[0];
+  const c = store.cards.find((x) => x.default) || store.cards[0];
   return c ? `${c.brand} •••• ${c.last4}` : "";
 });
 
@@ -75,4 +81,5 @@ function go(path) { haptic("light"); router.push(path); }
 
 <style scoped>
 .accent-dot { width: 18px; height: 18px; border-radius: 50%; flex: none; box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 8%, transparent); }
+.profile-card .pa { object-fit: cover; }
 </style>
