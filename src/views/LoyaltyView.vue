@@ -26,7 +26,49 @@
       <div class="mid"><span>{{ t("memberId", store.lang) }}</span> {{ memberId }}</div>
     </div>
 
-    <div v-if="!loyaltyOn" class="loy-off">{{ t("loyaltyOff", store.lang) }}</div>
+    <!-- Active redemptions: the customer shows this code/QR to claim the gift -->
+    <div v-if="redemptions.length" class="gift-mine">
+      <div class="h">{{ t("myGifts", store.lang) }}</div>
+      <div v-for="r in redemptions" :key="r.id" class="rd-card">
+        <div class="rd-info">
+          <div class="rd-name">{{ r.rewardName }}</div>
+          <div class="rd-code">{{ r.code }}</div>
+          <div class="rd-hint">{{ t("showCode", store.lang) }}</div>
+        </div>
+        <div class="rd-qr"><QRCode :value="r.code" /></div>
+      </div>
+    </div>
+
+    <!-- Gift catalog -->
+    <div v-if="gifts.length" class="gifts">
+      <div class="h">{{ t("gifts", store.lang) }}</div>
+      <div
+        v-for="g in gifts"
+        :key="g.id"
+        class="g-card"
+        :class="{ off: !g.affordable || !g.inStock }"
+      >
+        <div class="g-emoji">{{ giftEmoji(g.kind) }}</div>
+        <div class="g-main">
+          <div class="g-name">{{ g.name }}</div>
+          <div v-if="g.description" class="g-desc">{{ g.description }}</div>
+          <div class="g-cost">{{ grouped(g.pointsCost) }} {{ t("points", store.lang) }}</div>
+        </div>
+        <button
+          class="g-btn"
+          :class="{ confirm: confirmId === g.id }"
+          :disabled="!g.affordable || !g.inStock || busy === g.id"
+          @click="onRedeem(g)"
+        >
+          <span v-if="!g.inStock">{{ t("outOfStock", store.lang) }}</span>
+          <span v-else-if="busy === g.id">…</span>
+          <span v-else-if="confirmId === g.id">{{ t("redeemQ", store.lang, { n: grouped(g.pointsCost) }) }}</span>
+          <span v-else>{{ t("redeem", store.lang) }}</span>
+        </button>
+      </div>
+    </div>
+
+    <div v-if="!loyaltyOn && !gifts.length" class="loy-off">{{ t("loyaltyOff", store.lang) }}</div>
 
     <div v-if="history.length" class="loy-history">
       <div class="h">{{ t("history", store.lang) }}</div>
@@ -45,14 +87,13 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import Icon from "../components/Icon.js";
 import TopBar from "../components/TopBar.vue";
 import QRCode from "../components/QRCode.js";
-import { store, loadLoyalty } from "../store.js";
+import { store, loadLoyalty, loadRewards, redeemReward, flash } from "../store.js";
 import { t } from "../data/strings.js";
-import { sum } from "../data/foods.js";
 import { fmtDateTime } from "../util.js";
 
 const router = useRouter();
@@ -61,25 +102,85 @@ const points = computed(() => (store.loyalty ? store.loyalty.points : (store.me 
 const pointValue = computed(() => (store.loyalty ? store.loyalty.pointValueUzs : 0));
 const perUzs = computed(() => (store.loyalty ? store.loyalty.pointsPerUzs : 0));
 const history = computed(() => (store.loyalty ? store.loyalty.history : []));
+const redemptions = computed(() => (store.loyalty && store.loyalty.redemptions ? store.loyalty.redemptions : []));
+const gifts = computed(() => (store.rewards && store.rewards.items ? store.rewards.items : []));
 const loyaltyOn = computed(() => !!(store.config && store.config.featureFlags && store.config.featureFlags.loyalty) && perUzs.value > 0);
 
 const memberName = computed(() => (store.me ? store.me.name : "Smart"));
-const memberId = computed(() => (store.me && store.me.telegramId ? "SF-" + store.me.telegramId : (store.me ? "SF-" + store.me.id : "SF")));
+const memberId = computed(() => {
+  if (store.loyalty && store.loyalty.memberId) return store.loyalty.memberId;
+  if (store.me && store.me.telegramId) return "SF-" + store.me.telegramId;
+  return store.me ? "SF-" + store.me.id : "SF";
+});
 const earnInfo = computed(() => (perUzs.value ? t("earnInfo", store.lang) + ` · 1 / ${grouped(perUzs.value)}` : ""));
+
+const busy = ref(null);
+const confirmId = ref(null);
 
 const grouped = (n) => (n || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 
-onMounted(() => loadLoyalty());
+function giftEmoji(kind) {
+  return { FREE_PRODUCT: "🍔", DISCOUNT: "🏷️", FREE_DELIVERY: "🛵", CUSTOM: "🎁" }[kind] || "🎁";
+}
+
+async function onRedeem(g) {
+  if (!g.affordable || !g.inStock || busy.value) return;
+  // Two-tap confirm so a stray tap never spends points.
+  if (confirmId.value !== g.id) {
+    confirmId.value = g.id;
+    return;
+  }
+  confirmId.value = null;
+  busy.value = g.id;
+  try {
+    await redeemReward(g.id);
+    flash(t("redeemed", store.lang));
+  } catch (e) {
+    flash(e && e.message ? e.message : t("notEnough", store.lang));
+  } finally {
+    busy.value = null;
+  }
+}
+
+onMounted(() => {
+  loadLoyalty();
+  loadRewards();
+});
 </script>
 
 <style scoped>
 .loy-off { margin: 16px; padding: 14px; border-radius: 14px; background: var(--surface); border: 1px solid var(--hairline); text-align: center; font-weight: 700; font-size: 13px; color: var(--text-dim); }
 .loy-history { margin: 8px 16px 24px; }
-.loy-history .h { font-size: 12.5px; font-weight: 800; color: var(--text-faint); text-transform: uppercase; letter-spacing: .5px; margin: 18px 2px 12px; }
+.h { font-size: 12.5px; font-weight: 800; color: var(--text-faint); text-transform: uppercase; letter-spacing: .5px; margin: 18px 2px 12px; }
 .lh-row { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; background: var(--surface); border: 1px solid var(--hairline); border-radius: 14px; margin-bottom: 8px; }
 .lh-row .a { font-weight: 800; font-size: 13.5px; }
 .lh-row .b { font-size: 11px; color: var(--text-faint); font-weight: 700; margin-top: 2px; }
 .lh-r { display: flex; gap: 10px; font-weight: 800; font-size: 14px; }
 .lh-r .earn { color: var(--accent-2); }
 .lh-r .used { color: #e0a02a; }
+
+/* my redeemed gifts */
+.gift-mine { margin: 8px 16px; }
+.rd-card { display: flex; align-items: center; gap: 14px; padding: 14px 16px; margin-bottom: 10px; border-radius: 16px;
+  background: linear-gradient(135deg, var(--accent-2, #2bb673) 0%, color-mix(in srgb, var(--accent-2, #2bb673) 70%, #000) 100%);
+  color: #fff; box-shadow: 0 8px 24px -12px var(--accent-2, #2bb673); }
+.rd-info { flex: 1; min-width: 0; }
+.rd-name { font-weight: 800; font-size: 15px; }
+.rd-code { font-weight: 800; font-size: 16px; letter-spacing: 1px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.rd-hint { font-size: 11px; opacity: .85; font-weight: 600; margin-top: 3px; }
+.rd-qr { width: 76px; height: 76px; flex: 0 0 76px; background: #fff; border-radius: 12px; padding: 6px; }
+
+/* gift catalog */
+.gifts { margin: 8px 16px 24px; }
+.g-card { display: flex; align-items: center; gap: 13px; padding: 13px 14px; margin-bottom: 9px; background: var(--surface); border: 1px solid var(--hairline); border-radius: 16px; }
+.g-card.off { opacity: .55; }
+.g-emoji { font-size: 26px; width: 44px; height: 44px; display: grid; place-items: center; background: var(--surface-2, rgba(127,127,127,.08)); border-radius: 12px; flex: 0 0 44px; }
+.g-main { flex: 1; min-width: 0; }
+.g-name { font-weight: 800; font-size: 14.5px; }
+.g-desc { font-size: 11.5px; color: var(--text-faint); font-weight: 600; margin-top: 1px; }
+.g-cost { font-size: 12.5px; font-weight: 800; color: var(--accent, #6a4cff); margin-top: 3px; }
+.g-btn { flex: 0 0 auto; border: none; border-radius: 12px; padding: 10px 14px; font-weight: 800; font-size: 12.5px; color: #fff; background: var(--accent, #6a4cff); cursor: pointer; max-width: 46%; }
+.g-btn.confirm { background: var(--accent-2, #2bb673); font-size: 11px; }
+.g-btn:disabled { background: var(--hairline); color: var(--text-faint); cursor: default; }
+.g-empty { padding: 14px; text-align: center; color: var(--text-faint); font-weight: 700; font-size: 13px; }
 </style>

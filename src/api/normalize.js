@@ -239,11 +239,43 @@ export function normalizeAddress(d) {
 }
 
 /* ---------- loyalty ---------- */
+export function normalizeRedemption(d) {
+  d = d || {};
+  return {
+    id: d.id,
+    code: d.code || "",
+    rewardName: d.reward_name || "",
+    kind: d.kind || "",
+    pointsSpent: d.points_spent || 0,
+    status: d.status || "ISSUED",
+    createdAt: d.created_at || null,
+    fulfilledAt: d.fulfilled_at || null,
+  };
+}
+
+export function normalizeReward(d) {
+  d = d || {};
+  return {
+    id: d.id,
+    name: d.name || "Gift",
+    names: d.names || {},
+    description: d.description || "",
+    kind: d.kind || "CUSTOM",
+    pointsCost: d.points_cost || 0,
+    imageUrl: d.image_url || "",
+    discountAmount: d.discount_amount || 0,
+    productId: d.product_id || null,
+    inStock: d.in_stock !== false,
+    affordable: !!d.affordable,
+  };
+}
+
 export function normalizeLoyalty(d) {
   d = d || {};
   const rate = d.earn_rate || {};
   return {
     points: d.points || 0,
+    memberId: d.member_id || "",
     // NB: `points_per_uzs` is actually UZS-spent-per-1-point-earned (guide §6.6).
     pointsPerUzs: rate.points_per_uzs || 0,
     pointValueUzs: rate.point_value_uzs || 0,
@@ -255,6 +287,7 @@ export function normalizeLoyalty(d) {
           createdAt: h.created_at || null,
         }))
       : [],
+    redemptions: Array.isArray(d.redemptions) ? d.redemptions.map(normalizeRedemption) : [],
   };
 }
 

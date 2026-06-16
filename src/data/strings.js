@@ -102,6 +102,18 @@ export const STRINGS = {
   nextTier:    { uz: "Platinum darajasiga", en: "to Platinum tier", ru: "до уровня Platinum" },
   rewards:     { uz: "Mavjud mukofotlar", en: "Available rewards", ru: "Доступные награды" },
   earnInfo:    { uz: "Har 1 000 so‘mga 1 ball", en: "Earn 1 point per 1 000 so‘m", ru: "1 балл за каждые 1 000 сум" },
+  // gifts / redemption
+  gifts:       { uz: "Sovg‘alar", en: "Gifts", ru: "Подарки" },
+  giftsEmpty:  { uz: "Hozircha sovg‘alar yo‘q", en: "No gifts available yet", ru: "Пока нет подарков" },
+  redeem:      { uz: "Almashtirish", en: "Redeem", ru: "Обменять" },
+  redeemFor:   { uz: "{n} ballga", en: "for {n} pts", ru: "за {n} баллов" },
+  redeemQ:     { uz: "{n} ballga almashtirilsinmi?", en: "Redeem for {n} points?", ru: "Обменять за {n} баллов?" },
+  redeemed:    { uz: "Almashtirildi!", en: "Redeemed!", ru: "Обменяно!" },
+  notEnough:   { uz: "Ball yetarli emas", en: "Not enough points", ru: "Недостаточно баллов" },
+  outOfStock:  { uz: "Tugagan", en: "Out of stock", ru: "Нет в наличии" },
+  myGifts:     { uz: "Mening sovg‘alarim", en: "My gifts", ru: "Мои подарки" },
+  showCode:    { uz: "Olish uchun kassaga ko‘rsating", en: "Show at the counter to claim", ru: "Покажите на кассе, чтобы получить" },
+  giftFulfilled:{ uz: "Berildi", en: "Claimed", ru: "Получено" },
   scanLoyalty: { uz: "Sodiqlik kartasi", en: "Loyalty card", ru: "Карта лояльности" },
   // cart v2
   freeLeft:    { uz: "qoldi · bepul yetkazish", en: "more for free delivery", ru: "до бесплатной доставки" },

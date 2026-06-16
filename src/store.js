@@ -69,6 +69,7 @@ export const store = reactive({
 
   // ---- loyalty / support ----
   loyalty: null,
+  rewards: { points: 0, items: [] },   // gift catalog
   support: null,
   tickets: [],
 
@@ -526,6 +527,19 @@ export async function setDefaultAddress(id) {
 /* ---------------- loyalty / support / profile ---------------- */
 export async function loadLoyalty() {
   try { store.loyalty = await ds.getLoyalty(); } catch { /* ignore */ }
+}
+
+export async function loadRewards() {
+  try { store.rewards = await ds.getRewards(store.lang); } catch { /* ignore */ }
+}
+
+// Redeem a gift: spend points -> a redemption code. Refreshes loyalty + rewards
+// so the new balance, the issued code, and affordability flags update at once.
+// Returns the new redemption (with .code) or throws (caller shows the message).
+export async function redeemReward(rewardId) {
+  const redemption = await ds.redeemReward(rewardId);
+  await Promise.all([loadLoyalty(), loadRewards()]);
+  return redemption;
 }
 export async function loadSupport() {
   try { store.support = await ds.getSupport(); } catch { /* ignore */ }

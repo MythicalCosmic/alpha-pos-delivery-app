@@ -38,8 +38,11 @@ export const api = {
   geoReverse: (lat, lng, lang) => http.get("/geo/reverse", { query: { lat, lng, lang } }),
   geoForward: (q, lang, limit) => http.get("/geo/forward", { query: { q, lang, limit } }),
 
-  // ---- loyalty + support ----
+  // ---- loyalty + rewards + support ----
   loyalty: () => http.get("/loyalty"),
+  rewards: (lang) => http.get("/rewards", { query: { lang } }),
+  redeemReward: (id) => http.post(`/rewards/${id}/redeem`),
+  redemptions: () => http.get("/redemptions"),
   support: () => http.get("/support"),
   tickets: () => http.get("/support/tickets"),
   createTicket: (body) => http.post("/support/tickets", body),

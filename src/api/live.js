@@ -38,8 +38,14 @@ export const liveDs = {
   geoForward: (q, lang, limit) =>
     authed(() => api.geoForward(q, lang, limit)).then((d) => (d && d.results ? d.results : []).map(N.normalizeGeoResult)),
 
-  // loyalty + support
+  // loyalty + rewards + support
   getLoyalty: () => authed(() => api.loyalty()).then(N.normalizeLoyalty),
+  getRewards: (lang) => authed(() => api.rewards(lang)).then((d) => ({
+    points: (d && d.points) || 0,
+    items: items(d).map(N.normalizeReward),
+  })),
+  redeemReward: (id) => authed(() => api.redeemReward(id)).then((d) => N.normalizeRedemption(d && d.redemption)),
+  getRedemptions: () => authed(() => api.redemptions()).then((d) => items(d).map(N.normalizeRedemption)),
   getSupport: () => authed(() => api.support()).then(N.normalizeSupport),
   listTickets: () => authed(() => api.tickets()).then((d) => items(d).map(N.normalizeTicket)),
   createTicket: (body) => authed(() => api.createTicket(body)).then(N.normalizeTicket),
