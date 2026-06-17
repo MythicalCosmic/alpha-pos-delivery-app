@@ -244,6 +244,7 @@ export const STRINGS = {
   stDispatched:  { uz: "Tasdiqlandi", en: "Confirmed", ru: "Подтверждён" },
   stRejected:    { uz: "Rad etildi", en: "Rejected", ru: "Отклонён" },
   stCanceled:    { uz: "Bekor qilindi", en: "Canceled", ru: "Отменён" },
+  inStore:       { uz: "Do‘konda", en: "In-store", ru: "В магазине" },
   kPreparing:    { uz: "Tayyorlanmoqda", en: "Preparing", ru: "Готовится" },
   kReady:        { uz: "Tayyor", en: "Ready", ru: "Готов" },
   cancelOrder:   { uz: "Buyurtmani bekor qilish", en: "Cancel order", ru: "Отменить заказ" },

@@ -22,7 +22,12 @@ export const liveDs = {
   // cart + orders
   quote: (body) => authed(() => api.quote(body)).then(N.normalizeQuote),
   createOrder: (body) => authed(() => api.createOrder(body)).then(N.normalizeOrder),
-  listOrders: (status) => authed(() => api.listOrders(status)).then((d) => items(d).map(N.normalizeOrder)),
+  listOrders: (status) => authed(() => api.listOrders(status)).then((d) => {
+    // Bot orders + in-store purchases (phone-matched, made outside the bot).
+    const bot = items(d).map(N.normalizeOrder);
+    const inStore = Array.isArray(d && d.in_store) ? d.in_store.map(N.normalizeOrder) : [];
+    return [...bot, ...inStore];
+  }),
   getOrder: (id) => authed(() => api.order(id)).then(N.normalizeOrder),
   trackOrder: (id, opts) => authed(() => api.trackOrder(id, opts)).then(N.normalizeOrder),
   cancelOrder: (id) => authed(() => api.cancelOrder(id)),

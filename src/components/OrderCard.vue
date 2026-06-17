@@ -20,7 +20,8 @@
 
     <div class="order-foot">
       <div class="ot">{{ count }} {{ t("items", store.lang) }}<b>{{ sum(o.totals.total, store.lang) }}</b></div>
-      <button :class="['obtn', 'press', active ? 'ghost' : '']" @click="act">
+      <span v-if="inStore" class="instore-tag"><Icon name="bag" :size="13" /> {{ t("inStore", store.lang) }}</span>
+      <button v-else :class="['obtn', 'press', active ? 'ghost' : '']" @click="act">
         {{ active ? t("trackOrder", store.lang) : t("reorder", store.lang) }}
       </button>
     </div>
@@ -39,14 +40,15 @@ import { fmtDateTime } from "../util.js";
 const props = defineProps({ o: { type: Object, required: true } });
 const router = useRouter();
 
+const inStore = computed(() => props.o.source === "in_store");
 const active = computed(() => props.o.status === "PENDING" || props.o.status === "DISPATCHED");
 const count = computed(() => props.o.items.reduce((s, i) => s + i.quantity, 0));
 const date = computed(() => fmtDateTime(props.o.createdAt, store.lang));
 
-const statusKey = computed(() => ({
+const statusKey = computed(() => inStore.value ? "inStore" : ({
   PENDING: "stPending", DISPATCHED: "stDispatched", REJECTED: "stRejected", CANCELED: "stCanceled",
 }[props.o.status] || "stPending"));
-const statusClass = computed(() => ({
+const statusClass = computed(() => inStore.value ? "instore" : ({
   PENDING: "preparing", DISPATCHED: "ontheway", REJECTED: "rejected", CANCELED: "rejected",
 }[props.o.status] || "preparing"));
 
@@ -69,4 +71,6 @@ async function act() {
 .order-prev .prev-txt { font-size: 12.5px; font-weight: 700; color: var(--text-dim); }
 .order-prev .queue { margin-left: auto; font-weight: 800; font-size: 12px; color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); padding: 4px 10px; border-radius: 999px; }
 .status.rejected { color: #ef5b6e; }
+.status.instore { color: var(--text-dim); }
+.instore-tag { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 800; color: var(--text-dim); background: var(--surface-2); padding: 7px 12px; border-radius: 999px; }
 </style>

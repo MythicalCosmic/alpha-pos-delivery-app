@@ -178,6 +178,7 @@ export function normalizeOrder(d) {
   return {
     id: d.id,
     code: d.code || (d.id != null ? "SF-" + d.id : ""),
+    source: d.source || "bot",   // "in_store" for purchases made outside the bot
     status: d.status || "PENDING",
     orderType: d.order_type || "DELIVERY",
     createdAt: d.created_at || null,
