@@ -3,16 +3,21 @@
     <TopBar :title="t('support', store.lang)" @back="router.back()" />
     <div class="px" style="padding-top:6px">
 
-      <!-- contact channels -->
-      <div class="stack" style="margin-top:6px">
+      <div v-if="contacts.length" class="stack" style="margin-top:6px">
         <a v-for="c in contacts" :key="c.key" class="lrow press" :href="c.href" target="_blank" rel="noopener" @click="haptic('light')">
           <span class="li"><Icon :name="c.icon" :size="21" /></span>
           <span class="lt"><span class="a">{{ c.title }}</span><span class="b">{{ c.sub }}</span></span>
           <span class="chev"><Icon name="chevron" :size="20" /></span>
         </a>
       </div>
+      <div v-else class="ticket-cta">
+        <span class="ticket-cta-icon"><Icon name="chat" :size="22" /></span>
+        <span class="ticket-cta-copy">{{ t("supportTicketHelp", store.lang) }}</span>
+        <button class="ticket-cta-action press" type="button" @click="startTicket">
+          <Icon name="plus" :size="16" /> {{ t("newTicket", store.lang) }}
+        </button>
+      </div>
 
-      <!-- tickets -->
       <div class="gt2 row-between">
         <span>{{ t("myTickets", store.lang) }}</span>
         <button class="mini-add press" @click="toggleNew"><Icon name="plus" :size="16" /> {{ t("newTicket", store.lang) }}</button>
@@ -76,6 +81,7 @@ import { t } from "../data/strings.js";
 import { haptic } from "../telegram.js";
 import { pickLang } from "../api/normalize.js";
 import { fmtDateTime, fmtTime } from "../util.js";
+import { buildSupportContacts } from "../supportContacts.js";
 
 const router = useRouter();
 const openFaq = ref(0);
@@ -86,23 +92,14 @@ const message = ref("");
 const sending = ref(false);
 const replyText = reactive({});
 
-// Static fallback used until /support resolves (or if it has no contacts).
-const STATIC_CONTACTS = { phone: "+998 71 200 70 70", telegram: "@smartfood_support", email: "help@smartfood.uz" };
-
-const contactSrc = computed(() => {
-  const c = (store.support && store.support.contacts) || (store.config && store.config.support) || {};
-  return { phone: c.phone || STATIC_CONTACTS.phone, telegram: c.telegram || STATIC_CONTACTS.telegram, email: c.email || STATIC_CONTACTS.email };
-});
-
-const contacts = computed(() => {
-  const c = contactSrc.value;
-  const handle = (c.telegram || "").replace(/^@/, "");
-  return [
-    { key: "call", icon: "phone", title: t("supportCall", store.lang), sub: c.phone, href: `tel:${(c.phone || "").replace(/\s/g, "")}` },
-    { key: "tg", icon: "chat", title: t("supportTg", store.lang), sub: c.telegram, href: `https://t.me/${handle}` },
-    { key: "mail", icon: "bell", title: t("supportMail", store.lang), sub: c.email, href: `mailto:${c.email}` },
-  ];
-});
+const contacts = computed(() => buildSupportContacts(
+  [store.support && store.support.contacts, store.config && store.config.support],
+  {
+    call: t("supportCall", store.lang),
+    telegram: t("supportTg", store.lang),
+    email: t("supportMail", store.lang),
+  },
+));
 
 const STATIC_FAQ = [
   { q: "faqQ1", a: "faqA1" }, { q: "faqQ2", a: "faqA2" }, { q: "faqQ3", a: "faqA3" },
@@ -115,6 +112,7 @@ const faqs = computed(() => {
 
 function toggleFaq(i) { openFaq.value = openFaq.value === i ? -1 : i; haptic("light"); }
 function toggleNew() { composing.value = !composing.value; }
+function startTicket() { composing.value = true; haptic("light"); }
 
 async function submitTicket() {
   if (!message.value.trim() || sending.value) return;
@@ -142,6 +140,10 @@ onMounted(() => { loadSupport(); loadTickets(); });
 .mini-add { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 800; color: var(--accent); text-transform: none; }
 .muted { font-size: 12.5px; font-weight: 700; color: var(--text-faint); padding: 4px 2px; }
 .lrow { text-decoration: none; color: inherit; }
+.ticket-cta { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 10px 12px; margin-top: 6px; padding: 14px; border: 1px solid var(--hairline); border-radius: 16px; background: var(--surface); }
+.ticket-cta-icon { width: 42px; height: 42px; display: grid; place-items: center; color: var(--accent); background: var(--surface-2); border-radius: 12px; }
+.ticket-cta-copy { color: var(--text-dim); font-size: 12.5px; font-weight: 650; line-height: 1.45; }
+.ticket-cta-action { grid-column: 1 / -1; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 12px; color: var(--on-accent); background: var(--accent); font-weight: 800; }
 .ticket-form { background: var(--surface); border: 1px solid var(--hairline); border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
 .tf-in, .tf-area { width: 100%; border-radius: 12px; background: var(--surface-2); border: 1.5px solid var(--hairline); padding: 10px 12px; color: var(--text); font-weight: 600; font-size: 13.5px; outline: none; resize: none; font-family: inherit; }
 .tf-in:focus, .tf-area:focus { border-color: var(--accent); }

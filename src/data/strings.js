@@ -164,11 +164,9 @@ export const STRINGS = {
   notifSoundS: { uz: "Bildirishnoma ovozi", en: "Alert sounds", ru: "Звуки уведомлений" },
   // support
   supportCall: { uz: "Qo‘ng‘iroq qilish", en: "Call support", ru: "Позвонить" },
-  supportCallS:{ uz: "+998 71 200 70 70", en: "+998 71 200 70 70", ru: "+998 71 200 70 70" },
   supportTg:   { uz: "Telegram orqali yozish", en: "Chat on Telegram", ru: "Чат в Telegram" },
-  supportTgS:  { uz: "@smartfood_support", en: "@smartfood_support", ru: "@smartfood_support" },
   supportMail: { uz: "Email yuborish", en: "Email us", ru: "Написать на почту" },
-  supportMailS:{ uz: "help@smartfood.uz", en: "help@smartfood.uz", ru: "help@smartfood.uz" },
+  supportTicketHelp: { uz: "Yordam so‘rovini yuboring — jamoamiz shu yerning o‘zida javob beradi.", en: "Send a support request and our team will reply here in the app.", ru: "Отправьте обращение — наша команда ответит прямо здесь, в приложении." },
   faqTitle:    { uz: "Ko‘p so‘raladigan savollar", en: "Frequently asked", ru: "Частые вопросы" },
   faqQ1:       { uz: "Yetkazib berish qancha vaqt oladi?", en: "How long is delivery?", ru: "Сколько идёт доставка?" },
   faqA1:       { uz: "O‘rtacha 25–35 daqiqa, manzilingizga bog‘liq.", en: "Usually 25–35 minutes depending on your address.", ru: "Обычно 25–35 минут в зависимости от адреса." },
@@ -226,7 +224,7 @@ export const STRINGS = {
   closedS:       { uz: "Do‘kon vaqtincha buyurtma qabul qilmayapti", en: "The store isn’t taking orders at the moment", ru: "Магазин временно не принимает заказы" },
   noCashierT:    { uz: "Hozir buyurtma qabul qila olmaymiz", en: "We can’t take orders right now", ru: "Сейчас не можем принять заказ" },
   noCashierS:    { uz: "Birozdan so‘ng yana urinib ko‘ring", en: "Please try again shortly", ru: "Попробуйте чуть позже" },
-  noCashierHelp: { uz: "Restoran terminali bilan vaqtinchalik aloqa yo‘q. Birozdan so‘ng qayta urinib ko‘ring yoki yordam xizmatiga qo‘ng‘iroq qiling.", en: "The restaurant terminal is temporarily unavailable. Please try again shortly or call support.", ru: "Терминал ресторана временно недоступен. Попробуйте чуть позже или позвоните в поддержку." },
+  noCashierHelp: { uz: "Restoran terminali bilan vaqtinchalik aloqa yo‘q. Birozdan so‘ng qayta urinib ko‘ring yoki yordam xizmatiga murojaat yuboring.", en: "The restaurant terminal is temporarily unavailable. Please try again shortly or send a support request.", ru: "Терминал ресторана временно недоступен. Попробуйте чуть позже или отправьте обращение в поддержку." },
   browseClosed:  { uz: "Yopiq — menyu mavjud emas", en: "Closed — menu unavailable", ru: "Закрыто — меню недоступно" },
 
   // ---- cart / quote conflicts (branch on code, copy is localized) ----
@@ -261,8 +259,8 @@ export const STRINGS = {
   canceledSub:   { uz: "Buyurtma bekor qilindi", en: "This order was canceled", ru: "Заказ был отменён" },
   rejectedHelp:  { uz: "Afsuski, restoran bu buyurtmani qabul qila olmadi. Yordam uchun biz bilan bog‘laning.", en: "Unfortunately, the restaurant could not accept this order. Please contact us and we’ll help.", ru: "К сожалению, ресторан не смог принять заказ. Свяжитесь с нами — мы поможем." },
   technicalIssueTitle: { uz: "Texnik muammo", en: "Technical problem", ru: "Техническая ошибка" },
-  technicalOrderFailure: { uz: "Buyurtmani yuborishda texnik muammo yuz berdi. Qayta urinib ko‘ring yoki yordam xizmatiga qo‘ng‘iroq qiling.", en: "We couldn’t send your order because of a technical problem. Please try again or call support.", ru: "Не удалось отправить заказ из-за технической ошибки. Попробуйте ещё раз или позвоните в поддержку." },
-  technicalLoadFailure: { uz: "Buyurtma ma’lumotlarini hozir yuklab bo‘lmadi. Qayta urinib ko‘ring yoki yordam xizmatiga qo‘ng‘iroq qiling.", en: "We couldn’t load the order right now. Please try again or call support.", ru: "Сейчас не удалось загрузить заказ. Попробуйте ещё раз или позвоните в поддержку." },
+  technicalOrderFailure: { uz: "Buyurtmani yuborishda texnik muammo yuz berdi. Qayta urinib ko‘ring yoki yordam xizmatiga murojaat yuboring.", en: "We couldn’t send your order because of a technical problem. Please try again or send a support request.", ru: "Не удалось отправить заказ из-за технической ошибки. Попробуйте ещё раз или отправьте обращение в поддержку." },
+  technicalLoadFailure: { uz: "Buyurtma ma’lumotlarini hozir yuklab bo‘lmadi. Qayta urinib ko‘ring yoki yordam xizmatiga murojaat yuboring.", en: "We couldn’t load the order right now. Please try again or send a support request.", ru: "Сейчас не удалось загрузить заказ. Попробуйте ещё раз или отправьте обращение в поддержку." },
   callSupport:   { uz: "Yordam xizmatiga qo‘ng‘iroq", en: "Call support", ru: "Позвонить в поддержку" },
   contactSupport:{ uz: "Yordam bilan bog‘lanish", en: "Contact support", ru: "Связаться с поддержкой" },
   nothingHere:   { uz: "Bu yerda hozircha hech narsa yo‘q", en: "Nothing here yet", ru: "Здесь пока пусто" },

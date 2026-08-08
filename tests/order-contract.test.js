@@ -17,6 +17,7 @@ const {
   isTerminalOrder,
   orderLifecycle,
 } = await import("../src/orderLifecycle.js");
+const { buildSupportContacts } = await import("../src/supportContacts.js");
 
 test("checkout idempotency key survives equivalent retries and rotates on change", () => {
   const first = clientOrderIdFor({ items: [{ product_id: 329, quantity: 1 }], tip: 0 });
@@ -45,4 +46,20 @@ test("linked POS status is the authoritative customer lifecycle", () => {
   assert.equal(isTerminalOrder(linked("COMPLETED")), true);
   assert.equal(isActiveOrder(linked("CANCELED")), false);
   assert.equal(isActiveOrder({ status: "PAID" }), false);
+});
+
+test("support renders only non-empty contacts supplied by the backend", () => {
+  const labels = { call: "Call", telegram: "Telegram", email: "Email" };
+
+  assert.deepEqual(buildSupportContacts([{}, null], labels), []);
+  assert.deepEqual(
+    buildSupportContacts(
+      [{ phone: "  ", telegram: "@real_support", email: "" }, { phone: "+998 90 123 45 67" }],
+      labels,
+    ),
+    [
+      { key: "call", icon: "phone", title: "Call", sub: "+998 90 123 45 67", href: "tel:+998901234567" },
+      { key: "tg", icon: "chat", title: "Telegram", sub: "@real_support", href: "https://t.me/real_support" },
+    ],
+  );
 });
