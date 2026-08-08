@@ -10,6 +10,10 @@ const items = (d) => (d && Array.isArray(d.items) ? d.items : []);
 
 export const liveDs = {
   // config + profile
+  // Browser preview has no Telegram initData by definition. Probe the route
+  // directly so a healthy 401 is classified as "API reachable; sign in via
+  // Telegram" instead of failing locally inside ensureSession().
+  probeConfig: () => api.config().then(N.normalizeConfig),
   getConfig: () => authed(() => api.config()).then(N.normalizeConfig),
   getMe: () => authed(() => api.me()).then(N.normalizeMe),
   updateMe: (patch) => authed(() => api.updateMe(patch)).then(N.normalizeMe),

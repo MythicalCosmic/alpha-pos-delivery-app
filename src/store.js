@@ -225,7 +225,7 @@ function browserDefaultConfig() {
 async function bootBrowser() {
   store.browser = true;
   try {
-    store.config = await ds.getConfig();
+    store.config = await ds.probeConfig();
     store.apiNote = "ok";
   } catch (e) {
     if (e instanceof NetworkError) { store.bootState = "error"; store.bootError = "network"; return; }
