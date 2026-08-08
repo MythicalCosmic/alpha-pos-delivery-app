@@ -97,7 +97,8 @@
         <div v-if="loyaltyOn && totals.earned > 0" class="earn">+{{ totals.earned }} {{ t("points", store.lang) }}</div>
       </div>
 
-      <div v-if="submitError" class="cart-warn"><Icon name="info" :size="18" /> {{ submitError }}</div>
+      <OrderHelp v-if="submitError && submitNeedsSupport" :message="submitError" />
+      <div v-else-if="submitError" class="cart-warn"><Icon name="info" :size="18" /> {{ submitError }}</div>
       <div style="height:120px"></div>
     </div>
 
@@ -118,6 +119,7 @@ import FoodArt from "../components/FoodArt.js";
 import TopBar from "../components/TopBar.vue";
 import MiniMap from "../components/MiniMap.vue";
 import SwitchToggle from "../components/SwitchToggle.vue";
+import OrderHelp from "../components/OrderHelp.vue";
 import { store, selectedAddress, requestQuote, submitOrder, loadLoyalty, cartSubtotal, cartDelivery, cartTotalEstimate } from "../store.js";
 import { ClosedError, ConflictError, ApiError } from "../api/index.js";
 import { t, cf } from "../data/strings.js";
@@ -131,6 +133,7 @@ const note = ref("");
 const usePoints = ref(false);
 const submitting = ref(false);
 const submitError = ref("");
+const submitNeedsSupport = ref(false);
 
 const cardAllowed = computed(() => !!(store.config && store.config.featureFlags && store.config.featureFlags.card_payments));
 const loyaltyOn = computed(() => !!(store.config && store.config.featureFlags && store.config.featureFlags.loyalty));
@@ -179,6 +182,7 @@ function reprice() {
 async function place() {
   if (!canSubmit.value || submitting.value) return;
   submitError.value = "";
+  submitNeedsSupport.value = false;
   submitting.value = true;
   try {
     const order = await submitOrder({
@@ -192,11 +196,18 @@ async function place() {
     });
     router.replace(`/tracking/${order.id}`);
   } catch (e) {
-    if (e instanceof ClosedError) submitError.value = t(e.reason === "no_cashier" ? "noCashierT" : "closedT", store.lang);
+    if (e instanceof ClosedError) {
+      const noCashier = e.reason === "no_cashier";
+      submitError.value = t(noCashier ? "noCashierHelp" : "closedT", store.lang);
+      submitNeedsSupport.value = noCashier;
+    }
     else if (e instanceof ConflictError) submitError.value = cf(e.code, store.lang);
     else if (e instanceof ApiError && e.httpStatus === 422 && e.errors && e.errors.address_id) submitError.value = t("needAddress", store.lang);
     else if (e instanceof ApiError && e.httpStatus === 404) submitError.value = t("needAddress", store.lang);
-    else submitError.value = t("orderFail", store.lang);
+    else {
+      submitError.value = t("technicalOrderFailure", store.lang);
+      submitNeedsSupport.value = true;
+    }
   } finally {
     submitting.value = false;
   }

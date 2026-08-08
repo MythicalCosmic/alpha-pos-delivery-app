@@ -226,6 +226,7 @@ export const STRINGS = {
   closedS:       { uz: "Do‘kon vaqtincha buyurtma qabul qilmayapti", en: "The store isn’t taking orders at the moment", ru: "Магазин временно не принимает заказы" },
   noCashierT:    { uz: "Hozir buyurtma qabul qila olmaymiz", en: "We can’t take orders right now", ru: "Сейчас не можем принять заказ" },
   noCashierS:    { uz: "Birozdan so‘ng yana urinib ko‘ring", en: "Please try again shortly", ru: "Попробуйте чуть позже" },
+  noCashierHelp: { uz: "Restoran terminali bilan vaqtinchalik aloqa yo‘q. Birozdan so‘ng qayta urinib ko‘ring yoki yordam xizmatiga qo‘ng‘iroq qiling.", en: "The restaurant terminal is temporarily unavailable. Please try again shortly or call support.", ru: "Терминал ресторана временно недоступен. Попробуйте чуть позже или позвоните в поддержку." },
   browseClosed:  { uz: "Yopiq — menyu mavjud emas", en: "Closed — menu unavailable", ru: "Закрыто — меню недоступно" },
 
   // ---- cart / quote conflicts (branch on code, copy is localized) ----
@@ -244,6 +245,7 @@ export const STRINGS = {
   stDispatched:  { uz: "Tasdiqlandi", en: "Confirmed", ru: "Подтверждён" },
   stRejected:    { uz: "Rad etildi", en: "Rejected", ru: "Отклонён" },
   stCanceled:    { uz: "Bekor qilindi", en: "Canceled", ru: "Отменён" },
+  stCompleted:   { uz: "Yakunlandi", en: "Completed", ru: "Завершён" },
   inStore:       { uz: "Do‘konda", en: "In-store", ru: "В магазине" },
   kPreparing:    { uz: "Tayyorlanmoqda", en: "Preparing", ru: "Готовится" },
   kReady:        { uz: "Tayyor", en: "Ready", ru: "Готов" },
@@ -252,6 +254,17 @@ export const STRINGS = {
   cannotCancel:  { uz: "Buyurtmani bekor qilib bo‘lmaydi", en: "This order can’t be canceled", ru: "Заказ нельзя отменить" },
   queueNo:       { uz: "Navbat raqami", en: "Queue number", ru: "Номер очереди" },
   awaitingSub:   { uz: "Buyurtmangiz tasdiqlanishini kutmoqda", en: "Your order is awaiting confirmation", ru: "Ваш заказ ожидает подтверждения" },
+  confirmedSub:  { uz: "Buyurtmangiz qabul qilindi", en: "Your order has been accepted", ru: "Ваш заказ принят" },
+  preparingSub:  { uz: "Oshxonada buyurtmangiz tayyorlanmoqda", en: "The kitchen is preparing your order", ru: "Кухня готовит ваш заказ" },
+  readySub:      { uz: "Buyurtmangiz tayyor", en: "Your order is ready", ru: "Ваш заказ готов" },
+  completedSub:  { uz: "Buyurtma muvaffaqiyatli yakunlandi", en: "Your order has been completed", ru: "Заказ успешно завершён" },
+  canceledSub:   { uz: "Buyurtma bekor qilindi", en: "This order was canceled", ru: "Заказ был отменён" },
+  rejectedHelp:  { uz: "Afsuski, restoran bu buyurtmani qabul qila olmadi. Yordam uchun biz bilan bog‘laning.", en: "Unfortunately, the restaurant could not accept this order. Please contact us and we’ll help.", ru: "К сожалению, ресторан не смог принять заказ. Свяжитесь с нами — мы поможем." },
+  technicalIssueTitle: { uz: "Texnik muammo", en: "Technical problem", ru: "Техническая ошибка" },
+  technicalOrderFailure: { uz: "Buyurtmani yuborishda texnik muammo yuz berdi. Qayta urinib ko‘ring yoki yordam xizmatiga qo‘ng‘iroq qiling.", en: "We couldn’t send your order because of a technical problem. Please try again or call support.", ru: "Не удалось отправить заказ из-за технической ошибки. Попробуйте ещё раз или позвоните в поддержку." },
+  technicalLoadFailure: { uz: "Buyurtma ma’lumotlarini hozir yuklab bo‘lmadi. Qayta urinib ko‘ring yoki yordam xizmatiga qo‘ng‘iroq qiling.", en: "We couldn’t load the order right now. Please try again or call support.", ru: "Сейчас не удалось загрузить заказ. Попробуйте ещё раз или позвоните в поддержку." },
+  callSupport:   { uz: "Yordam xizmatiga qo‘ng‘iroq", en: "Call support", ru: "Позвонить в поддержку" },
+  contactSupport:{ uz: "Yordam bilan bog‘lanish", en: "Contact support", ru: "Связаться с поддержкой" },
   nothingHere:   { uz: "Bu yerda hozircha hech narsa yo‘q", en: "Nothing here yet", ru: "Здесь пока пусто" },
 
   // ---- loyalty (live) ----

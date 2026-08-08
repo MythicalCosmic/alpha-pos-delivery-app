@@ -36,26 +36,31 @@ import { store, reorder } from "../store.js";
 import { t } from "../data/strings.js";
 import { sum } from "../data/foods.js";
 import { fmtDateTime } from "../util.js";
+import { isActiveOrder, orderLifecycle } from "../orderLifecycle.js";
 
 const props = defineProps({ o: { type: Object, required: true } });
 const router = useRouter();
 
 const inStore = computed(() => props.o.source === "in_store");
-const active = computed(() => props.o.status === "PENDING" || props.o.status === "DISPATCHED");
+const lifecycle = computed(() => orderLifecycle(props.o));
+const active = computed(() => isActiveOrder(props.o));
 const count = computed(() => props.o.items.reduce((s, i) => s + i.quantity, 0));
 const date = computed(() => fmtDateTime(props.o.createdAt, store.lang));
 
 const statusKey = computed(() => inStore.value ? "inStore" : ({
-  PENDING: "stPending", DISPATCHED: "stDispatched", REJECTED: "stRejected", CANCELED: "stCanceled",
-}[props.o.status] || "stPending"));
+  PENDING: "stPending", DISPATCHED: "stDispatched", PREPARING: "kPreparing",
+  READY: "kReady", COMPLETED: "stCompleted", REJECTED: "stRejected", CANCELED: "stCanceled",
+}[lifecycle.value] || "stPending"));
 const statusClass = computed(() => inStore.value ? "instore" : ({
-  PENDING: "preparing", DISPATCHED: "ontheway", REJECTED: "rejected", CANCELED: "rejected",
-}[props.o.status] || "preparing"));
+  PENDING: "preparing", DISPATCHED: "ontheway", PREPARING: "preparing",
+  READY: "ontheway", COMPLETED: "completed", REJECTED: "rejected", CANCELED: "rejected",
+}[lifecycle.value] || "preparing"));
 
 // 1 = received (PENDING), 2 = confirmed (DISPATCHED), 3 = ready (kitchen READY)
 const step = computed(() => {
-  if (props.o.status === "PENDING") return 1;
-  if (props.o.status === "DISPATCHED") return props.o.posOrder && props.o.posOrder.status === "READY" ? 3 : 2;
+  if (lifecycle.value === "PENDING") return 1;
+  if (lifecycle.value === "DISPATCHED" || lifecycle.value === "PREPARING") return 2;
+  if (lifecycle.value === "READY") return 3;
   return 0;
 });
 
@@ -71,6 +76,7 @@ async function act() {
 .order-prev .prev-txt { font-size: 12.5px; font-weight: 700; color: var(--text-dim); }
 .order-prev .queue { margin-left: auto; font-weight: 800; font-size: 12px; color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); padding: 4px 10px; border-radius: 999px; }
 .status.rejected { color: #ef5b6e; }
+.status.completed { color: #1fb87a; }
 .status.instore { color: var(--text-dim); }
 .instore-tag { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 800; color: var(--text-dim); background: var(--surface-2); padding: 7px 12px; border-radius: 999px; }
 </style>

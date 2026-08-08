@@ -180,6 +180,8 @@ export function normalizeOrder(d) {
     code: d.code || (d.id != null ? "SF-" + d.id : ""),
     source: d.source || "bot",   // "in_store" for purchases made outside the bot
     status: d.status || "PENDING",
+    effectiveStatus: d.effective_status || null,
+    clientOrderId: d.client_order_id || null,
     orderType: d.order_type || "DELIVERY",
     createdAt: d.created_at || null,
     phone: d.phone || "",

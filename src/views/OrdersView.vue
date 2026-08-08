@@ -23,11 +23,11 @@ import Icon from "../components/Icon.js";
 import OrderCard from "../components/OrderCard.vue";
 import { store, loadOrders } from "../store.js";
 import { t } from "../data/strings.js";
+import { isActiveOrder } from "../orderLifecycle.js";
 
 const seg = ref("active");
-const isActive = (o) => o.status === "PENDING" || o.status === "DISPATCHED";
-const active = computed(() => store.orders.filter(isActive));
-const history = computed(() => store.orders.filter((o) => !isActive(o)));
+const active = computed(() => store.orders.filter(isActiveOrder));
+const history = computed(() => store.orders.filter((o) => !isActiveOrder(o)));
 const list = computed(() => (seg.value === "active" ? active.value : history.value));
 
 onMounted(() => loadOrders());

@@ -10,6 +10,7 @@ import { t } from "./data/strings.js";
 import { haptic } from "./telegram.js";
 import { ds, ApiError, ClosedError, ConflictError, NetworkError, NoTelegramError, ensureSession, clearSession } from "./api/index.js";
 import { ALLOW_BROWSER } from "./config.js";
+import { clientOrderIdFor, clearClientOrderId } from "./orderAttempt.js";
 
 const TWEAK_DEFAULTS = {
   accent: "#ff4d8d",
@@ -406,7 +407,10 @@ export async function submitOrder({ orderType = "DELIVERY", addressId = null, ph
   if (phone) body.phone = phone;
   if (note) body.note = note;
 
+  const clientOrderId = clientOrderIdFor(body);
+  body.client_order_id = clientOrderId;
   const order = await ds.createOrder(body);
+  clearClientOrderId(clientOrderId);
   store.orderCache[order.id] = order;
   clearCart();
   store.quote = null;
