@@ -25,12 +25,34 @@ function fullMap(map, resolved) {
 }
 
 // Map free text (a category or product name, any language) to a FoodArt kind.
+// Specific mixed meals and foods run before broad words such as burger/drink.
+// The aliases intentionally include the spellings used by the live Uzbek POS
+// catalog, so every published row gets recognizable art without manual images.
 const KIND_RULES = [
+  ["combo", /combo|kombo|комбо|lanchbox|lunchbox|lanch box|combo top|premium|ikkilik|(?:moxito|mojito|kokteyl).*(?:waffle|vafl)|kurasan.*muzqaymoq/i],
+  ["hotdog", /hot\s*dog|hotdog|хот\s*дог|longer/i],
+  ["lavash", /lavash|лаваш|tandir|toster|lester/i],
+  ["pizza", /pizza|pitsa|пицц|hachapuri|хачапури/i],
+  ["sandwich", /non\s*(?:burger|kabob)|нон\s*(?:бургер|кабоб)|sandwich|сэндвич/i],
   ["burger", /burger|бургер/i],
-  ["pizza", /pizza|pitsa|пицц/i],
-  ["dessert", /dessert|shirin|десерт|cake|keks|tort|donut|ice/i],
-  ["drink", /drink|ichim|напит|juice|sok|cola|tea|coffee|shake|lemonad|milksh/i],
-  ["combo", /combo|kombo|комбо|set|meal|family|oilaviy/i],
+  ["wings", /qanot|wing|крыл/i],
+  ["nuggets", /nagget|nugget|наггет/i],
+  ["sauce", /sous|sauce|соус|ketchup|chisnoch|chili|qalampir/i],
+  ["cheese", /sirniy\s*(?:paloch|sharik)|cheese\s*(?:stick|ball)|сырн.*(?:палоч|шарик)/i],
+  ["chicken", /strips?|srtips?|qarsildoq|\bfile\b|chicken|tovuq|куриц/i],
+  ["fries", /kartoshka.*fri|french\s*fries|карто.*фри|\bfri\b/i],
+  ["doner", /donar|doner|döner|донар|донер/i],
+  ["pastry", /bolichka|kurasan|croissant|kruassan|круассан|булоч/i],
+  ["bread", /(^|\s)non($|\s)|bread|хлеб|леп[её]ш/i],
+  ["gum", /saqich|gum|жвач/i],
+  ["waffle", /waffle|vafl|вафл/i],
+  ["icecream", /muzqaymoq|ice\s*cream|морож/i],
+  ["dessert", /dessert|shirin|десерт|cake|keks|tort|donut|maxrovi|kit\s*kat|medovik|trayfil|trifle/i],
+  ["shake", /kokteyl|cocktail|milk\s*shake|milkshake|yogurt|kakao|sutli|matcha|bablti|bubble\s*tea/i],
+  ["coffee", /cofe|kofe|coffee|kapuch|cappucc|кофе/i],
+  ["tea", /choy|chay|tea|чай/i],
+  ["drink", /moxito|mojito|limonat|limanat|limont|lemonad|ichimlik|напит|tashqi\s*bar/i],
+  ["bottle", /cola|suv|water|juice|\bsok\b|micco|limoo|dena|maxito|\bparty\b|ak45|aloe|be\s*fresh|sakura/i],
 ];
 export function kindFromText(...texts) {
   const hay = texts.filter(Boolean).join(" ");
@@ -38,7 +60,33 @@ export function kindFromText(...texts) {
   return "all";
 }
 
-const HUE_BY_KIND = { burger: 22, pizza: 14, dessert: 330, drink: 300, combo: 18, all: 270 };
+const HUE_BY_KIND = {
+  burger: 22,
+  hotdog: 5,
+  pizza: 14,
+  lavash: 38,
+  sandwich: 45,
+  chicken: 27,
+  wings: 18,
+  nuggets: 34,
+  cheese: 48,
+  fries: 352,
+  sauce: 4,
+  doner: 24,
+  bread: 38,
+  pastry: 31,
+  gum: 315,
+  tea: 145,
+  coffee: 26,
+  bottle: 202,
+  drink: 300,
+  shake: 326,
+  icecream: 330,
+  waffle: 37,
+  dessert: 340,
+  combo: 18,
+  all: 270,
+};
 export function hueForKind(kind) {
   return HUE_BY_KIND[kind] ?? 270;
 }
@@ -48,6 +96,26 @@ function hueFor(kind, id) {
   const base = hueForKind(kind);
   const n = Number(id) || 0;
   return (base + (n % 5) * 6) % 360;
+}
+
+// Product payloads carry category_id but not the category name. Once both live
+// lists arrive, use the category's art family only for names that did not match
+// a more specific product rule (e.g. "Mango marakuya" under Choylar).
+export function applyCategoryArt(products, categories) {
+  const byId = new Map((categories || []).map((category) => [String(category.id), category]));
+  for (const product of products || []) {
+    if (product.kind !== "all") continue;
+    const category = byId.get(String(product.categoryId));
+    if (!category || !category.kind || category.kind === "all") continue;
+    product.kind = category.kind;
+    product.hue = hueFor(product.kind, product.id);
+  }
+  return products;
+}
+
+const UPSELL_KINDS = new Set(["bottle", "drink", "shake", "tea", "coffee", "icecream", "dessert", "waffle"]);
+export function isUpsellKind(kind) {
+  return UPSELL_KINDS.has(kind);
 }
 
 /* ---------- config ---------- */

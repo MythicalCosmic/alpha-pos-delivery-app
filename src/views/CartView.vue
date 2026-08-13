@@ -98,6 +98,7 @@ import {
 } from "../store.js";
 import { t, cf } from "../data/strings.js";
 import { foodName, sum } from "../data/foods.js";
+import { isUpsellKind } from "../api/normalize.js";
 
 const router = useRouter();
 
@@ -134,7 +135,7 @@ const canCheckout = computed(() =>
 
 const upsell = computed(() => {
   const inCart = (id) => store.cart.some((c) => c.productId === id);
-  return store.products.filter((f) => (f.kind === "drink" || f.kind === "dessert") && !inCart(f.id)).slice(0, 5);
+  return store.products.filter((f) => isUpsellKind(f.kind) && !inCart(f.id)).slice(0, 5);
 });
 
 function reprice() { if (store.cart.length) requestQuote({ orderType: "DELIVERY", tip: 0, pointsUsed: 0 }); }

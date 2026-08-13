@@ -11,6 +11,7 @@ import { haptic } from "./telegram.js";
 import { ds, ApiError, ClosedError, ConflictError, NetworkError, NoTelegramError, ensureSession, clearSession } from "./api/index.js";
 import { ALLOW_BROWSER } from "./config.js";
 import { clientOrderIdFor, clearClientOrderId } from "./orderAttempt.js";
+import { applyCategoryArt } from "./api/normalize.js";
 import {
   isFullCatalogQuery,
   productCanBeOrdered,
@@ -270,7 +271,14 @@ export async function loadProducts(query = {}) {
   store.catalogLoading = true;
   store.catalogError = "";
   try {
-    const products = await ds.getProducts({ lang: store.lang, ...query });
+    // Load categories alongside the first product request so unmatched product
+    // names can inherit a meaningful category icon without adding latency.
+    const categoriesReady = store.categories.length ? Promise.resolve() : loadCategories();
+    const [products] = await Promise.all([
+      ds.getProducts({ lang: store.lang, ...query }),
+      categoriesReady,
+    ]);
+    applyCategoryArt(products, store.categories);
     store.products = products;
     if (isFullCatalogQuery(query)) {
       const availability = reconcileCatalogAvailability(
