@@ -98,13 +98,13 @@
       </div>
 
       <OrderHelp v-if="submitError && submitNeedsSupport" :message="submitError" />
-      <div v-else-if="submitError" class="cart-warn"><Icon name="info" :size="18" /> {{ submitError }}</div>
+      <div v-else-if="visibleError" class="cart-warn"><Icon name="info" :size="18" /> {{ visibleError }}</div>
       <div style="height:120px"></div>
     </div>
 
     <div class="actionbar">
       <button class="cta press" :disabled="!canSubmit || submitting" @click="place">
-        <span v-if="submitting" class="spinner-sm"></span>
+        <span v-if="submitting || store.quoting" class="spinner-sm"></span>
         <template v-else>{{ t("placeOrder", store.lang) }} <span class="tp">· {{ sum(totals.total, store.lang) }}</span></template>
       </button>
     </div>
@@ -120,7 +120,7 @@ import TopBar from "../components/TopBar.vue";
 import MiniMap from "../components/MiniMap.vue";
 import SwitchToggle from "../components/SwitchToggle.vue";
 import OrderHelp from "../components/OrderHelp.vue";
-import { store, selectedAddress, requestQuote, submitOrder, loadLoyalty, cartSubtotal, cartDelivery, cartTotalEstimate } from "../store.js";
+import { store, selectedAddress, requestQuote, submitOrder, loadLoyalty, loadProducts, cartSubtotal, cartDelivery, cartTotalEstimate } from "../store.js";
 import { ClosedError, ConflictError, ApiError } from "../api/index.js";
 import { t, cf } from "../data/strings.js";
 import { foodName, sum } from "../data/foods.js";
@@ -139,6 +139,13 @@ const cardAllowed = computed(() => !!(store.config && store.config.featureFlags 
 const loyaltyOn = computed(() => !!(store.config && store.config.featureFlags && store.config.featureFlags.loyalty));
 const pointsAvailable = computed(() => (store.loyalty ? store.loyalty.points : (store.me ? store.me.points : 0)));
 const pointsUsed = computed(() => (usePoints.value ? pointsAvailable.value : 0));
+const hasUnavailable = computed(() => store.cart.some((it) => it.unavailable));
+const quoteError = computed(() => {
+  if (store.catalogClosed) return t("browseClosed", store.lang);
+  if (store.quoteError && store.quoteError.code) return cf(store.quoteError.code, store.lang);
+  return "";
+});
+const visibleError = computed(() => submitError.value || quoteError.value);
 
 const tipOptions = computed(() => {
   const o = store.config && store.config.defaultTipOptions;
@@ -171,6 +178,10 @@ const addrDetail = computed(() => {
 const canSubmit = computed(() =>
   store.cart.length > 0 &&
   !(orderType.value === "DELIVERY" && !selectedAddress.value) &&
+  !!store.quote &&
+  !store.quoting &&
+  !store.quoteError &&
+  !hasUnavailable.value &&
   !store.catalogClosed
 );
 
@@ -185,6 +196,17 @@ async function place() {
   submitNeedsSupport.value = false;
   submitting.value = true;
   try {
+    // Re-quote immediately before submit so a product stopped since the user
+    // opened checkout never appears to go through. The backend validates again.
+    const currentQuote = await requestQuote({
+      orderType: orderType.value,
+      tip: tip.value,
+      pointsUsed: pointsUsed.value,
+    });
+    if (!currentQuote) {
+      submitError.value = quoteError.value || cf("error", store.lang);
+      return;
+    }
     const order = await submitOrder({
       orderType: orderType.value,
       addressId: orderType.value === "DELIVERY" && selectedAddress.value ? selectedAddress.value.id : null,
@@ -213,9 +235,10 @@ async function place() {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   if (store.cart.length === 0) { router.replace("/cart"); return; }
   if (!store.loyalty) loadLoyalty();
+  await loadProducts();
   reprice();
 });
 watch([orderType, tip, usePoints], reprice);

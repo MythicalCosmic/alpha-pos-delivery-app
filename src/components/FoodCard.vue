@@ -13,7 +13,7 @@
     </div>
     <div class="priceline">
       <div class="price">{{ sum(f.price, store.lang) }}</div>
-      <button class="add press" :disabled="f.available === false" @click.stop="quickAdd(f)"><Icon name="plus" /></button>
+      <button class="add press" :disabled="!orderable" @click.stop="quickAdd(f)"><Icon name="plus" /></button>
     </div>
   </div>
 </template>
@@ -23,7 +23,7 @@ import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import Icon from "./Icon.js";
 import FoodArt from "./FoodArt.js";
-import { store, isFav, toggleFav, quickAdd } from "../store.js";
+import { store, isFav, toggleFav, quickAdd, isProductOrderable } from "../store.js";
 import { foodName, sum } from "../data/foods.js";
 import { t } from "../data/strings.js";
 
@@ -31,6 +31,7 @@ const props = defineProps({ f: { type: Object, required: true } });
 const router = useRouter();
 const imgFailed = ref(false);
 const fav = computed(() => isFav(props.f.id));
+const orderable = computed(() => isProductOrderable(props.f));
 const catLabel = computed(() => {
   const c = store.categories.find((x) => x.id === props.f.categoryId);
   return c ? c.name : "";

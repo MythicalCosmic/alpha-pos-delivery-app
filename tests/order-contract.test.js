@@ -18,6 +18,11 @@ const {
   orderLifecycle,
 } = await import("../src/orderLifecycle.js");
 const { buildSupportContacts } = await import("../src/supportContacts.js");
+const {
+  cartHasUnavailableItems,
+  productCanBeOrdered,
+  reconcileCatalogAvailability,
+} = await import("../src/catalogAvailability.js");
 
 test("checkout idempotency key survives equivalent retries and rotates on change", () => {
   const first = clientOrderIdFor({ items: [{ product_id: 329, quantity: 1 }], tip: 0 });
@@ -62,4 +67,32 @@ test("support renders only non-empty contacts supplied by the backend", () => {
       { key: "tg", icon: "chat", title: "Telegram", sub: "@real_support", href: "https://t.me/real_support" },
     ],
   );
+});
+
+test("a fresh catalog marks stopped products in persisted carts and favorites", () => {
+  const cart = [
+    { productId: 10, snapshot: { id: 10 } },
+    { productId: 20, snapshot: { id: 20 } },
+  ];
+  const favorites = [{ id: 10, name: "Old name" }, { id: 20, name: "Stopped" }];
+  const cache = { 10: { id: 10 }, 20: { id: 20 } };
+  const products = [{ id: 10, name: "Live name", names: {}, price: 12000, available: true }];
+
+  const result = reconcileCatalogAvailability(products, cart, favorites, cache);
+
+  assert.deepEqual(result.availableProductIds, ["10"]);
+  assert.equal(result.unavailableCartCount, 1);
+  assert.equal(cart[0].unavailable, false);
+  assert.equal(cart[1].unavailable, true);
+  assert.equal(favorites[0].available, true);
+  assert.equal(favorites[0].name, "Live name");
+  assert.equal(favorites[1].available, false);
+  assert.deepEqual(Object.keys(cache), ["10"]);
+  assert.equal(cartHasUnavailableItems(cart), true);
+});
+
+test("catalog-backed orderability rejects stopped favorite snapshots", () => {
+  assert.equal(productCanBeOrdered({ id: 10, available: true }, ["10"], true), true);
+  assert.equal(productCanBeOrdered({ id: 20, available: true }, ["10"], true), false);
+  assert.equal(productCanBeOrdered({ id: 10, available: false }, ["10"], true), false);
 });

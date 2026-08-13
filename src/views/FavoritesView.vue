@@ -13,11 +13,12 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, onMounted } from "vue";
 import Icon from "../components/Icon.js";
 import FoodRow from "../components/FoodRow.vue";
-import { store } from "../store.js";
+import { store, loadProducts } from "../store.js";
 import { t } from "../data/strings.js";
 
 const favs = computed(() => store.favorites);
+onMounted(() => loadProducts());
 </script>

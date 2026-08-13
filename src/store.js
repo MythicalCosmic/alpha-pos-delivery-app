@@ -11,6 +11,11 @@ import { haptic } from "./telegram.js";
 import { ds, ApiError, ClosedError, ConflictError, NetworkError, NoTelegramError, ensureSession, clearSession } from "./api/index.js";
 import { ALLOW_BROWSER } from "./config.js";
 import { clientOrderIdFor, clearClientOrderId } from "./orderAttempt.js";
+import {
+  isFullCatalogQuery,
+  productCanBeOrdered,
+  reconcileCatalogAvailability,
+} from "./catalogAvailability.js";
 
 const TWEAK_DEFAULTS = {
   accent: "#ff4d8d",
@@ -49,6 +54,8 @@ export const store = reactive({
   categories: [],
   products: [],
   productCache: {},              // id -> detail product
+  catalogReady: false,           // a complete live product list was loaded
+  availableProductIds: [],       // IDs from that complete sellable list
   catalogLoading: false,
   catalogError: "",
 
@@ -263,7 +270,18 @@ export async function loadProducts(query = {}) {
   store.catalogLoading = true;
   store.catalogError = "";
   try {
-    store.products = await ds.getProducts({ lang: store.lang, ...query });
+    const products = await ds.getProducts({ lang: store.lang, ...query });
+    store.products = products;
+    if (isFullCatalogQuery(query)) {
+      const availability = reconcileCatalogAvailability(
+        products,
+        store.cart,
+        store.favorites,
+        store.productCache,
+      );
+      store.availableProductIds = availability.availableProductIds;
+      store.catalogReady = true;
+    }
     store.catalogClosed = false;
     return store.products;
   } catch (e) {
@@ -276,7 +294,8 @@ export async function loadProducts(query = {}) {
 }
 
 export async function loadProduct(id) {
-  if (store.productCache[id]) return store.productCache[id];
+  // Always re-check the server. A cached detail must not let a product that was
+  // stopped after browsing be added from Favorites, Reorder, or browser history.
   const p = await ds.getProduct(id, store.lang);
   store.productCache[id] = p;
   return p;
@@ -317,7 +336,9 @@ export function buildLine(product, { sizeId = null, toppingIds = [], qty = 1 } =
       image_url: product.image_url,
       categoryId: product.categoryId,
       price: product.price,
+      available: product.available !== false,
     },
+    unavailable: product.available === false,
   };
 }
 
@@ -330,21 +351,36 @@ export function addLine(line) {
 }
 
 export function quickAdd(product) {
-  if (product && product.available === false) { haptic("warning"); flash(t("cf_item_unavailable", store.lang)); return; }
+  if (!isProductOrderable(product)) { haptic("warning"); flash(t("cf_item_unavailable", store.lang)); return; }
   addLine(buildLine(product, { qty: 1 }));
   haptic("success");
   flash(t("added", store.lang));
 }
 
+export function isProductOrderable(product) {
+  return productCanBeOrdered(product, store.availableProductIds, store.catalogReady);
+}
+
 export function changeQty(uid, d) {
   const it = store.cart.find((x) => x.uid === uid);
-  if (it) { it.qty = Math.max(1, it.qty + d); store.quote = null; }
+  if (!it) return;
+  if (d > 0 && it.unavailable) {
+    haptic("warning");
+    flash(t("cf_item_unavailable", store.lang));
+    return;
+  }
+  it.qty = Math.max(1, it.qty + d);
+  store.quote = null;
 }
 export function removeItem(uid) {
   const i = store.cart.findIndex((x) => x.uid === uid);
   if (i >= 0) { store.cart.splice(i, 1); store.quote = null; }
 }
-export function clearCart() { store.cart.splice(0, store.cart.length); store.quote = null; }
+export function clearCart() {
+  store.cart.splice(0, store.cart.length);
+  store.quote = null;
+  store.quoteError = null;
+}
 
 // Server item payload for quote/order. size_id only when a real size is chosen.
 function cartItemsPayload() {
@@ -381,7 +417,12 @@ export async function requestQuote({ orderType = "DELIVERY", tip = 0, pointsUsed
     if (seq !== _quoteSeq) return null;
     store.quote = null;
     if (e instanceof ClosedError) store.catalogClosed = true;
-    else if (e instanceof ConflictError) store.quoteError = { code: e.code, message: e.serverMessage };
+    else if (e instanceof ConflictError) {
+      store.quoteError = { code: e.code, message: e.serverMessage };
+      // A full catalog refresh marks persisted cart/favorite snapshots that the
+      // server no longer exposes because selling or publishing was switched off.
+      if (e.code === "item_unavailable") await loadProducts();
+    }
     else store.quoteError = { code: "error", message: (e && e.message) || "" };
     return null;
   } finally {
