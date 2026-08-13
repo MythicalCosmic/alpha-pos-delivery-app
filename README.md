@@ -113,27 +113,32 @@ an address, and session expiry.
 The Mini App ships as static files served by **nginx**, which also reverse-proxies
 `/api/smartfood` to the backend on the **same origin** (so the bearer transport needs no
 CORS — see `BACKEND_API.md` §D). The app is served at **`/webapp/`** to match the
-backend's `CUSTOMER_WEBAPP_URL = https://<host>/webapp/`.
+backend's `CUSTOMER_WEBAPP_URL`. The canonical customer-facing URL is
+**`https://delivery.78.111.90.65.nip.io/webapp/`**; Telegram, Caddy, and the
+backend must all use that exact URL. The `pos.` hostname remains an internal
+nginx upstream and is never shown to customers.
 
 ```bash
 # one-shot build + run (parameterized via env)
 BACKEND_ORIGIN=https://your-backend WEBAPP_PORT=8080 ./deploy.sh
-#   -> http://localhost:8080/webapp/   (health: /healthz)
+#   -> https://delivery.78.111.90.65.nip.io/webapp/
 
 # or with docker compose
-BACKEND_ORIGIN=https://your-backend docker compose up -d --build
+BACKEND_ORIGIN=https://your-backend ./deploy.sh --compose
 ```
 
 | Var | Default | Purpose |
 |---|---|---|
+| `PUBLIC_WEBAPP_URL` | `https://delivery.78.111.90.65.nip.io/webapp/` | canonical Telegram/customer URL |
+| `EDGE_NETWORK` | `edge` | shared Caddy network; webapp alias is `delivery-webapp` |
 | `BACKEND_ORIGIN` | `https://pos.78.111.90.65.nip.io` | origin `/api/smartfood` is proxied to |
 | `WEBAPP_PORT` | `8080` | host port (container listens on 80) |
 | `VITE_API_BASE` | `/api/smartfood` | API base baked into the bundle |
 | `VITE_YANDEX_MAPS_KEY` | – | Yandex JS Maps + Geocoder key (baked at build) |
 
-After deploy: front it with public HTTPS, set the backend `CUSTOMER_WEBAPP_URL` and the
-@BotFather Mini App URL to `https://<host>/webapp/`, and restrict the Yandex key by
-HTTP-Referer to that domain.
+After deploy, set the backend `CUSTOMER_WEBAPP_URL` and Telegram menu URL to
+`https://delivery.78.111.90.65.nip.io/webapp/`, and restrict the Yandex key by
+HTTP-Referer to the `delivery.78.111.90.65.nip.io` domain.
 
 ## Structure
 

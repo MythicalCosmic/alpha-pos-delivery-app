@@ -6,6 +6,9 @@
 # Everything is parameterized via env vars (override inline or in a .env file):
 #   BACKEND_ORIGIN        backend origin proxied for /api/smartfood
 #                         (default: https://pos.78.111.90.65.nip.io)
+#   PUBLIC_WEBAPP_URL      canonical Telegram Mini App URL
+#                         (default: https://delivery.78.111.90.65.nip.io/webapp/)
+#   EDGE_NETWORK           shared Caddy network (default: edge)
 #   WEBAPP_PORT           host port to publish (default: 8080)
 #   IMAGE                 image tag (default: smartfood-webapp:latest)
 #   CONTAINER             container name (default: smartfood-webapp)
@@ -30,6 +33,8 @@ fi
 BACKEND_ORIGIN="${BACKEND_ORIGIN:-https://pos.78.111.90.65.nip.io}"
 # A trailing slash on the origin would make nginx rewrite the proxied path — strip it.
 BACKEND_ORIGIN="${BACKEND_ORIGIN%/}"
+PUBLIC_WEBAPP_URL="${PUBLIC_WEBAPP_URL:-https://delivery.78.111.90.65.nip.io/webapp/}"
+EDGE_NETWORK="${EDGE_NETWORK:-edge}"
 WEBAPP_PORT="${WEBAPP_PORT:-8080}"
 IMAGE="${IMAGE:-smartfood-webapp:latest}"
 CONTAINER="${CONTAINER:-smartfood-webapp}"
@@ -42,18 +47,23 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 1
 fi
 
+docker network inspect "${EDGE_NETWORK}" >/dev/null 2>&1 \
+  || docker network create "${EDGE_NETWORK}" >/dev/null
+
 echo "==> Smart Food Mini App deploy"
 echo "    image          : ${IMAGE}"
 echo "    backend origin : ${BACKEND_ORIGIN}"
+echo "    public URL     : ${PUBLIC_WEBAPP_URL}"
+echo "    edge network   : ${EDGE_NETWORK}"
 echo "    published port : ${WEBAPP_PORT} -> 80"
 echo
 
 # Optional: docker compose path.
 if [[ "${1:-}" == "--compose" ]]; then
-  export BACKEND_ORIGIN WEBAPP_PORT VITE_API_BASE VITE_YANDEX_MAPS_KEY VITE_TRACK_POLL_MS
+  export BACKEND_ORIGIN PUBLIC_WEBAPP_URL EDGE_NETWORK WEBAPP_PORT VITE_API_BASE VITE_YANDEX_MAPS_KEY VITE_TRACK_POLL_MS
   docker compose up -d --build
   echo
-  echo "==> Up via docker compose. Mini App: http://localhost:${WEBAPP_PORT}/webapp/"
+  echo "==> Up via docker compose. Mini App: ${PUBLIC_WEBAPP_URL}"
   exit 0
 fi
 
@@ -69,16 +79,17 @@ docker rm -f "${CONTAINER}" >/dev/null 2>&1 || true
 docker run -d \
   --name "${CONTAINER}" \
   --restart unless-stopped \
+  --network "${EDGE_NETWORK}" \
+  --network-alias delivery-webapp \
   -e "BACKEND_ORIGIN=${BACKEND_ORIGIN}" \
   -p "${WEBAPP_PORT}:80" \
   "${IMAGE}"
 
 echo
-echo "==> Deployed. Mini App: http://localhost:${WEBAPP_PORT}/webapp/"
+echo "==> Deployed. Mini App: ${PUBLIC_WEBAPP_URL}"
 echo "    Health:           http://localhost:${WEBAPP_PORT}/healthz"
 echo
 echo "Next steps:"
-echo "  • Put this behind your public HTTPS host (TLS terminator / load balancer)."
-echo "  • Set the backend CUSTOMER_WEBAPP_URL to  https://<public-host>/webapp/"
-echo "  • In @BotFather, set the customer bot's Mini App URL to the same value."
+echo "  • Caddy should route delivery.<server-ip>.nip.io to this webapp container."
+echo "  • Set backend CUSTOMER_WEBAPP_URL and the Telegram menu to ${PUBLIC_WEBAPP_URL}"
 echo "  • Restrict the Yandex Maps key by HTTP-Referer to your Mini App domain."

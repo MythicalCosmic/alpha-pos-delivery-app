@@ -2,12 +2,12 @@
 # Build the static bundle and serve it behind nginx with a same-origin
 # reverse proxy to the backend. Configure via .env (see .env.example) or env vars:
 #   BACKEND_ORIGIN         backend the /api/smartfood path is proxied to
+#   EDGE_NETWORK           shared Caddy network (default edge)
 #   WEBAPP_PORT            host port to expose (default 8080)
 #   VITE_YANDEX_MAPS_KEY   Yandex JS Maps + Geocoder key (public; baked at build)
 #
-#   docker compose up -d --build
-#   -> Mini App at http://localhost:${WEBAPP_PORT}/webapp/
-#   -> set the backend's CUSTOMER_WEBAPP_URL to https://<public-host>/webapp/
+#   ./deploy.sh --compose
+#   -> Mini App at https://delivery.<server-ip>.nip.io/webapp/
 
 services:
   webapp:
@@ -23,9 +23,18 @@ services:
       BACKEND_ORIGIN: ${BACKEND_ORIGIN:-https://pos.78.111.90.65.nip.io}
     ports:
       - "${WEBAPP_PORT:-8080}:80"
+    networks:
+      edge:
+        aliases:
+          - delivery-webapp
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost/healthz"]
       interval: 30s
       timeout: 5s
       retries: 3
+
+networks:
+  edge:
+    external: true
+    name: ${EDGE_NETWORK:-edge}
