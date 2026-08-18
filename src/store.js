@@ -196,6 +196,20 @@ function applyServerLanguage() {
   if (!saved.lang && store.me && store.me.language) store.lang = store.me.language;
 }
 
+function newVisitId() {
+  if (globalThis.crypto && typeof globalThis.crypto.randomUUID === "function") {
+    return globalThis.crypto.randomUUID();
+  }
+  // UUID-shaped fallback for older Telegram WebViews. The server still treats
+  // it as an opaque idempotency key and validates the UUID syntax.
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
+    const value = Math.floor(Math.random() * 16);
+    return (char === "x" ? value : ((value & 0x3) | 0x8)).toString(16);
+  });
+}
+
+const clientVisitId = newVisitId();
+
 export async function boot() {
   store.bootState = "loading";
   store.bootError = "";
@@ -203,6 +217,9 @@ export async function boot() {
     store.me = await ensureSession();
     store.browser = false;
     applyServerLanguage();
+    // One event per Mini App page boot. Best-effort keeps analytics from ever
+    // becoming an availability dependency for the customer experience.
+    ds.trackVisit(clientVisitId).catch(() => {});
     store.config = await ds.getConfig();
     store.bootState = "ready";
     warmData();

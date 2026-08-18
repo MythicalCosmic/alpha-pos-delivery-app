@@ -17,6 +17,7 @@ export const liveDs = {
   getConfig: () => authed(() => api.config()).then(N.normalizeConfig),
   getMe: () => authed(() => api.me()).then(N.normalizeMe),
   updateMe: (patch) => authed(() => api.updateMe(patch)).then(N.normalizeMe),
+  trackVisit: (clientVisitId) => authed(() => api.trackVisit(clientVisitId)),
 
   // catalog
   getCategories: (lang) => authed(() => api.categories(lang)).then((d) => items(d).map(N.normalizeCategory)),

@@ -15,6 +15,9 @@ export const api = {
   me: () => http.get("/me"),
   updateMe: (patch) => http.patch("/me", patch),
   config: () => http.get("/config"),
+  trackVisit: (clientVisitId) => http.post("/analytics/visit", {
+    client_visit_id: clientVisitId,
+  }),
 
   // ---- catalog (store-open gated) ----
   categories: (lang) => http.get("/catalog/categories", { query: { lang } }),
