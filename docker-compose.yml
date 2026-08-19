@@ -29,7 +29,9 @@ services:
           - delivery-webapp
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost/healthz"]
+      # Alpine resolves localhost to ::1 first, while this nginx vhost listens
+      # on IPv4. Pin the probe to loopback so a healthy app is not marked down.
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
       interval: 30s
       timeout: 5s
       retries: 3
