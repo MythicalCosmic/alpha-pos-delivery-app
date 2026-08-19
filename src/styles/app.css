@@ -27,5 +27,41 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+  .enter,
+  .screen-anim,
+  .push-anim { animation: fadeIn .1s linear both; }
+
+  .route-leave-active { transition: opacity .08s linear; }
+
+  .press,
+  .navbtn,
+  .navbtn svg,
+  .navbtn .dot,
+  .fcard .fav,
+  .segmented button,
+  .switch,
+  .switch i,
+  .size-pill,
+  .checkbox,
+  .radio,
+  .slot,
+  .pay-card,
+  .tip-chip,
+  .freebar .bar i { transition: none; }
+
+  .press:active,
+  .navbtn.active svg { transform: none; }
+
+  .spinner,
+  .spinner-sm,
+  .status .d,
+  .success .ring,
+  .success .ring .core svg,
+  .success h1,
+  .success p,
+  .success .scooter,
+  .success .btns,
+  .tmap .scooter,
+  .eta .pill .d,
+  .tstep.active .ico { animation: none; }
 }

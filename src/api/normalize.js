@@ -136,6 +136,19 @@ export function normalizeConfig(d) {
   };
 }
 
+export function loyaltyModes(config, loyalty) {
+  const flags = config && config.featureFlags ? config.featureFlags : {};
+  const has = (key) => Object.prototype.hasOwnProperty.call(flags, key);
+  const legacy = !!flags.loyalty;
+  const earning = has("loyalty_earning") ? !!flags.loyalty_earning : legacy;
+  const spendingEnabled = has("loyalty_spending") ? !!flags.loyalty_spending : legacy;
+  const pointValue = Number(loyalty && loyalty.pointValueUzs) || 0;
+  return {
+    earning,
+    spending: spendingEnabled && pointValue > 0,
+  };
+}
+
 /* ---------- catalog ---------- */
 export function normalizeCategory(d) {
   d = d || {};
@@ -326,6 +339,9 @@ export function normalizeRedemption(d) {
 
 export function normalizeReward(d) {
   d = d || {};
+  const inStock = d.in_stock !== false;
+  const affordable = !!d.affordable;
+  const limitReached = !!d.limit_reached;
   return {
     id: d.id,
     name: d.name || "Gift",
@@ -336,8 +352,24 @@ export function normalizeReward(d) {
     imageUrl: d.image_url || "",
     discountAmount: d.discount_amount || 0,
     productId: d.product_id || null,
-    inStock: d.in_stock !== false,
-    affordable: !!d.affordable,
+    inStock,
+    affordable,
+    limitReached,
+    canRedeem: d.can_redeem == null
+      ? inStock && affordable && !limitReached
+      : !!d.can_redeem,
+  };
+}
+
+export function normalizeBanner(d) {
+  d = d || {};
+  return {
+    id: d.id,
+    title: d.title || '',
+    subtitle: d.subtitle || '',
+    imageUrl: d.image_url || '',
+    actionType: d.action_type || 'NONE',
+    productId: d.product_id || null,
   };
 }
 

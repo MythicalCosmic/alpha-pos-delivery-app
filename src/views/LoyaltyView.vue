@@ -46,9 +46,12 @@
         v-for="g in gifts"
         :key="g.id"
         class="g-card"
-        :class="{ off: !g.affordable || !g.inStock }"
+        :class="{ off: !g.canRedeem }"
       >
-        <div class="g-emoji">{{ giftEmoji(g.kind) }}</div>
+        <div class="g-visual">
+          <span aria-hidden="true">{{ giftEmoji(g.kind) }}</span>
+          <img v-if="g.imageUrl" :src="g.imageUrl" alt="" width="52" height="52" loading="lazy" @error="hideBrokenImage" />
+        </div>
         <div class="g-main">
           <div class="g-name">{{ g.name }}</div>
           <div v-if="g.description" class="g-desc">{{ g.description }}</div>
@@ -57,10 +60,12 @@
         <button
           class="g-btn"
           :class="{ confirm: confirmId === g.id }"
-          :disabled="!g.affordable || !g.inStock || busy === g.id"
+          :disabled="!g.canRedeem || busy === g.id"
           @click="onRedeem(g)"
         >
-          <span v-if="!g.inStock">{{ t("outOfStock", store.lang) }}</span>
+          <span v-if="g.limitReached">{{ t("rewardLimitReached", store.lang) }}</span>
+          <span v-else-if="!g.inStock">{{ t("outOfStock", store.lang) }}</span>
+          <span v-else-if="!g.affordable">{{ t("notEnough", store.lang) }}</span>
           <span v-else-if="busy === g.id">…</span>
           <span v-else-if="confirmId === g.id">{{ t("redeemQ", store.lang, { n: grouped(g.pointsCost) }) }}</span>
           <span v-else>{{ t("redeem", store.lang) }}</span>
@@ -68,7 +73,8 @@
       </div>
     </div>
 
-    <div v-if="!loyaltyOn && !gifts.length" class="loy-off">{{ t("loyaltyOff", store.lang) }}</div>
+    <div v-if="loyaltyOn && !gifts.length" class="loy-off">{{ t("rewardsEmpty", store.lang) }}</div>
+    <div v-else-if="!loyaltyOn && !gifts.length" class="loy-off">{{ t("loyaltyOff", store.lang) }}</div>
 
     <div v-if="history.length" class="loy-history">
       <div class="h">{{ t("history", store.lang) }}</div>
@@ -95,6 +101,7 @@ import QRCode from "../components/QRCode.js";
 import { store, loadLoyalty, loadRewards, redeemReward, flash } from "../store.js";
 import { t } from "../data/strings.js";
 import { fmtDateTime } from "../util.js";
+import { loyaltyModes } from "../api/normalize.js";
 
 const router = useRouter();
 
@@ -104,7 +111,8 @@ const perUzs = computed(() => (store.loyalty ? store.loyalty.pointsPerUzs : 0));
 const history = computed(() => (store.loyalty ? store.loyalty.history : []));
 const redemptions = computed(() => (store.loyalty && store.loyalty.redemptions ? store.loyalty.redemptions : []));
 const gifts = computed(() => (store.rewards && store.rewards.items ? store.rewards.items : []));
-const loyaltyOn = computed(() => !!(store.config && store.config.featureFlags && store.config.featureFlags.loyalty) && perUzs.value > 0);
+const loyaltyCapabilities = computed(() => loyaltyModes(store.config, store.loyalty));
+const loyaltyOn = computed(() => loyaltyCapabilities.value.earning || loyaltyCapabilities.value.spending);
 
 const memberName = computed(() => (store.me ? store.me.name : "Smart"));
 const memberId = computed(() => {
@@ -112,7 +120,11 @@ const memberId = computed(() => {
   if (store.me && store.me.telegramId) return "SF-" + store.me.telegramId;
   return store.me ? "SF-" + store.me.id : "SF";
 });
-const earnInfo = computed(() => (perUzs.value ? t("earnInfo", store.lang) + ` · 1 / ${grouped(perUzs.value)}` : ""));
+const earnInfo = computed(() => (
+  perUzs.value
+    ? t("earnInfo", store.lang, { v: grouped(perUzs.value) })
+    : ""
+));
 
 const busy = ref(null);
 const confirmId = ref(null);
@@ -123,8 +135,12 @@ function giftEmoji(kind) {
   return { FREE_PRODUCT: "🍔", DISCOUNT: "🏷️", FREE_DELIVERY: "🛵", CUSTOM: "🎁" }[kind] || "🎁";
 }
 
+function hideBrokenImage(event) {
+  event.currentTarget.hidden = true;
+}
+
 async function onRedeem(g) {
-  if (!g.affordable || !g.inStock || busy.value) return;
+  if (!g.canRedeem || busy.value) return;
   // Two-tap confirm so a stray tap never spends points.
   if (confirmId.value !== g.id) {
     confirmId.value = g.id;
@@ -134,7 +150,7 @@ async function onRedeem(g) {
   busy.value = g.id;
   try {
     await redeemReward(g.id);
-    flash(t("redeemed", store.lang));
+    flash(t("redeemSuccess", store.lang));
   } catch (e) {
     flash(e && e.message ? e.message : t("notEnough", store.lang));
   } finally {
@@ -151,10 +167,10 @@ onMounted(() => {
 <style scoped>
 .loy-off { margin: 16px; padding: 14px; border-radius: 14px; background: var(--surface); border: 1px solid var(--hairline); text-align: center; font-weight: 700; font-size: 13px; color: var(--text-dim); }
 .loy-history { margin: 8px 16px 24px; }
-.h { font-size: 12.5px; font-weight: 800; color: var(--text-faint); text-transform: uppercase; letter-spacing: .5px; margin: 18px 2px 12px; }
+.h { font-size: 12.5px; font-weight: 800; color: var(--text-dim); text-transform: uppercase; letter-spacing: .5px; margin: 18px 2px 12px; }
 .lh-row { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; background: var(--surface); border: 1px solid var(--hairline); border-radius: 14px; margin-bottom: 8px; }
 .lh-row .a { font-weight: 800; font-size: 13.5px; }
-.lh-row .b { font-size: 11px; color: var(--text-faint); font-weight: 700; margin-top: 2px; }
+.lh-row .b { font-size: 11px; color: var(--text-dim); font-weight: 700; margin-top: 2px; }
 .lh-r { display: flex; gap: 10px; font-weight: 800; font-size: 14px; }
 .lh-r .earn { color: var(--accent-2); }
 .lh-r .used { color: #e0a02a; }
@@ -173,14 +189,17 @@ onMounted(() => {
 /* gift catalog */
 .gifts { margin: 8px 16px 24px; }
 .g-card { display: flex; align-items: center; gap: 13px; padding: 13px 14px; margin-bottom: 9px; background: var(--surface); border: 1px solid var(--hairline); border-radius: 16px; }
-.g-card.off { opacity: .55; }
-.g-emoji { font-size: 26px; width: 44px; height: 44px; display: grid; place-items: center; background: var(--surface-2, rgba(127,127,127,.08)); border-radius: 12px; flex: 0 0 44px; }
+.g-card.off { border-color: var(--hairline-strong); }
+.g-visual { position: relative; width: 52px; height: 52px; display: grid; place-items: center; overflow: hidden; font-size: 26px; background: var(--surface-2, rgba(127,127,127,.08)); border: 1px solid var(--hairline); border-radius: 14px; flex: 0 0 52px; }
+.g-visual img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .g-main { flex: 1; min-width: 0; }
 .g-name { font-weight: 800; font-size: 14.5px; }
-.g-desc { font-size: 11.5px; color: var(--text-faint); font-weight: 600; margin-top: 1px; }
-.g-cost { font-size: 12.5px; font-weight: 800; color: var(--accent, #6a4cff); margin-top: 3px; }
-.g-btn { flex: 0 0 auto; border: none; border-radius: 12px; padding: 10px 14px; font-weight: 800; font-size: 12.5px; color: #fff; background: var(--accent, #6a4cff); cursor: pointer; max-width: 46%; }
-.g-btn.confirm { background: var(--accent-2, #2bb673); font-size: 11px; }
-.g-btn:disabled { background: var(--hairline); color: var(--text-faint); cursor: default; }
+.g-desc { font-size: 11.5px; color: var(--text-dim); font-weight: 600; margin-top: 1px; }
+.g-cost { font-size: 12.5px; font-weight: 800; color: #9f1f56; margin-top: 3px; }
+.g-btn { min-height: 44px; flex: 0 0 auto; border: none; border-radius: 12px; padding: 8px 14px; font-weight: 800; font-size: 12.5px; line-height: 1.25; color: #fff; background: #9f1f56; cursor: pointer; max-width: 46%; }
+.g-btn.confirm { background: #087551; font-size: 11px; }
+.g-btn:disabled { background: #e7e2f3; color: #51496f; cursor: default; }
+:global([data-theme="dark"]) .g-cost { color: #ff8fba; }
+:global([data-theme="dark"]) .g-btn:disabled { background: #342d59; color: #c4bce3; }
 .g-empty { padding: 14px; text-align: center; color: var(--text-faint); font-weight: 700; font-size: 13px; }
 </style>

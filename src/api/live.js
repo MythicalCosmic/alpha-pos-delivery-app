@@ -23,6 +23,7 @@ export const liveDs = {
   getCategories: (lang) => authed(() => api.categories(lang)).then((d) => items(d).map(N.normalizeCategory)),
   getProducts: (query) => authed(() => api.products(query)).then((d) => items(d).map(N.normalizeProduct)),
   getProduct: (id, lang) => authed(() => api.product(id, lang)).then(N.normalizeProduct),
+  getBanners: (lang) => authed(() => api.banners(lang)).then((d) => items(d).map(N.normalizeBanner)),
 
   // cart + orders
   quote: (body) => authed(() => api.quote(body)).then(N.normalizeQuote),

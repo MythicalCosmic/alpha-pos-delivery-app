@@ -23,6 +23,7 @@ export const api = {
   categories: (lang) => http.get("/catalog/categories", { query: { lang } }),
   products: (q) => http.get("/catalog/products", { query: q }),
   product: (id, lang) => http.get(`/catalog/products/${id}`, { query: { lang } }),
+  banners: (lang) => http.get('/banners', { query: { lang } }),
 
   // ---- cart + orders ----
   quote: (body) => http.post("/cart/quote", body),

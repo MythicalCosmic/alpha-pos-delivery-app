@@ -61,5 +61,14 @@
 @keyframes load { 0% { left: -40%; } 100% { left: 100%; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .splash, .splash * { animation-duration: .01ms !important; }
+  .splash { animation: none; }
+  .splash .aura,
+  .splash .orbit,
+  .splash .mark,
+  .splash .mark .glow,
+  .splash .orbit .od,
+  .splash .loader i { animation: none; }
+  .splash .orbit .od,
+  .splash .word,
+  .splash .tagline { opacity: 1; animation: none; }
 }

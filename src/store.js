@@ -55,6 +55,7 @@ export const store = reactive({
   categories: [],
   products: [],
   productCache: {},              // id -> detail product
+  banners: [],                   // scheduled home promotions from the server
   catalogReady: false,           // a complete live product list was loaded
   availableProductIds: [],       // IDs from that complete sellable list
   catalogLoading: false,
@@ -155,6 +156,10 @@ export function setLang(l) {
   store.lang = l;
   // Best-effort: persist the choice to the profile too (non-blocking).
   if (store.me && store.bootState === "ready") ds.updateMe({ language: l }).catch(() => {});
+  if (store.bootState === "ready") {
+    loadBanners();
+    loadRewards();
+  }
 }
 export function setTweak(key, val) { store.tweaks[key] = val; }
 export function setNotif(key, val) { store.notif[key] = val; }
@@ -324,6 +329,16 @@ export async function loadProduct(id) {
   const p = await ds.getProduct(id, store.lang);
   store.productCache[id] = p;
   return p;
+}
+
+export async function loadBanners() {
+  try {
+    store.banners = await ds.getBanners(store.lang);
+  } catch {
+    // Promotions are optional content; a catalog/order flow must remain usable
+    // if this one request is temporarily unavailable.
+    store.banners = [];
+  }
 }
 
 function handleCatalogError(e) {

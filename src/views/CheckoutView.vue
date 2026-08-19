@@ -67,7 +67,7 @@
       <div v-if="!cardAllowed" class="pay-note">{{ t("cashOnly", store.lang) }}</div>
 
       <!-- loyalty points -->
-      <template v-if="loyaltyOn && pointsAvailable > 0">
+      <template v-if="loyaltySpendingOn && pointsAvailable > 0">
         <div class="lbl">{{ t("usePoints", store.lang) }}</div>
         <div class="points-row">
           <div class="pl">
@@ -94,7 +94,7 @@
         <div v-if="orderType === 'DELIVERY'" class="tr"><span>{{ t("delivery", store.lang) }}</span><span :class="{ free: totals.deliveryFee === 0 }">{{ totals.deliveryFee === 0 ? t("free", store.lang) : sum(totals.deliveryFee, store.lang) }}</span></div>
         <div v-if="totals.tip > 0" class="tr"><span>{{ t("tipCourier", store.lang) }}</span><span>{{ sum(totals.tip, store.lang) }}</span></div>
         <div class="tr grand"><span>{{ t("total", store.lang) }}</span><b>{{ sum(totals.total, store.lang) }}</b></div>
-        <div v-if="loyaltyOn && totals.earned > 0" class="earn">+{{ totals.earned }} {{ t("points", store.lang) }}</div>
+        <div v-if="loyaltyEarningOn && totals.earned > 0" class="earn">+{{ totals.earned }} {{ t("points", store.lang) }}</div>
       </div>
 
       <OrderHelp v-if="submitError && submitNeedsSupport" :message="submitError" />
@@ -124,6 +124,7 @@ import { store, selectedAddress, requestQuote, submitOrder, loadLoyalty, loadPro
 import { ClosedError, ConflictError, ApiError } from "../api/index.js";
 import { t, cf } from "../data/strings.js";
 import { foodName, sum } from "../data/foods.js";
+import { loyaltyModes } from "../api/normalize.js";
 
 const router = useRouter();
 const orderType = ref("DELIVERY");
@@ -136,9 +137,11 @@ const submitError = ref("");
 const submitNeedsSupport = ref(false);
 
 const cardAllowed = computed(() => !!(store.config && store.config.featureFlags && store.config.featureFlags.card_payments));
-const loyaltyOn = computed(() => !!(store.config && store.config.featureFlags && store.config.featureFlags.loyalty));
+const loyaltyCapabilities = computed(() => loyaltyModes(store.config, store.loyalty));
+const loyaltyEarningOn = computed(() => loyaltyCapabilities.value.earning);
+const loyaltySpendingOn = computed(() => loyaltyCapabilities.value.spending);
 const pointsAvailable = computed(() => (store.loyalty ? store.loyalty.points : (store.me ? store.me.points : 0)));
-const pointsUsed = computed(() => (usePoints.value ? pointsAvailable.value : 0));
+const pointsUsed = computed(() => (usePoints.value && loyaltySpendingOn.value ? pointsAvailable.value : 0));
 const hasUnavailable = computed(() => store.cart.some((it) => it.unavailable));
 const quoteError = computed(() => {
   if (store.catalogClosed) return t("browseClosed", store.lang);
@@ -242,6 +245,9 @@ onMounted(async () => {
   reprice();
 });
 watch([orderType, tip, usePoints], reprice);
+watch(loyaltySpendingOn, (enabled) => {
+  if (!enabled) usePoints.value = false;
+});
 </script>
 
 <style scoped>
