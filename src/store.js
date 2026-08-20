@@ -49,6 +49,9 @@ export const store = reactive({
 
   // ---- i18n + theme (persisted) ----
   lang: saved.lang || "uz",
+  // Fresh installs distinguish a Telegram-derived default from a choice made
+  // in Settings. Existing saved languages are preserved as explicit choices.
+  langExplicit: saved.langExplicit ?? !!saved.lang,
   tweaks: { ...TWEAK_DEFAULTS, ...(saved.tweaks || {}) },
 
   // ---- catalog ----
@@ -75,6 +78,8 @@ export const store = reactive({
   // ---- addresses ----
   addresses: [],
   addressesLoading: false,
+  addressesLoaded: false,
+  addressesError: "",
   selectedAddressId: saved.selectedAddressId || null,
 
   // ---- loyalty / support ----
@@ -108,6 +113,14 @@ export const selectedAddress = computed(() => {
     null
   );
 });
+export const profileComplete = computed(() => !!(store.me && store.me.profileComplete));
+export const deliverableAddresses = computed(() =>
+  store.addresses.filter((address) => address.lat != null && address.lng != null)
+);
+export const selectedAddressIsDeliverable = computed(() => {
+  const address = selectedAddress.value;
+  return !!(address && address.lat != null && address.lng != null);
+});
 
 export const cartCount = computed(() => store.cart.reduce((s, i) => s + i.qty, 0));
 export const cartSubtotal = computed(() => store.cart.reduce((s, i) => s + i.unit * i.qty, 0));
@@ -125,11 +138,12 @@ export const cartTotalEstimate = computed(() => cartSubtotal.value + cartDeliver
 
 /* ---------------- persistence ---------------- */
 watch(
-  () => [store.lang, store.tweaks, store.favorites, store.notif, store.cards, store.cart, store.selectedAddressId, store._uid],
+  () => [store.lang, store.langExplicit, store.tweaks, store.favorites, store.notif, store.cards, store.cart, store.selectedAddressId, store._uid],
   () => {
     try {
       localStorage.setItem(PERSIST_KEY, JSON.stringify({
         lang: store.lang,
+        langExplicit: store.langExplicit,
         tweaks: store.tweaks,
         favorites: store.favorites,
         notif: store.notif,
@@ -154,6 +168,7 @@ export function flash(msg) {
 /* ---------------- prefs ---------------- */
 export function setLang(l) {
   store.lang = l;
+  store.langExplicit = true;
   // Best-effort: persist the choice to the profile too (non-blocking).
   if (store.me && store.bootState === "ready") ds.updateMe({ language: l }).catch(() => {});
   if (store.bootState === "ready") {
@@ -163,6 +178,21 @@ export function setLang(l) {
 }
 export function setTweak(key, val) { store.tweaks[key] = val; }
 export function setNotif(key, val) { store.notif[key] = val; }
+
+export async function setBroadcastOptIn(value) {
+  const previous = store.notif.promos;
+  store.notif.promos = !!value;
+  try {
+    store.me = await ds.updateMe({ broadcast_opted_in: !!value });
+    store.notif.promos = store.me.broadcastOptedIn;
+    haptic("success");
+    return true;
+  } catch (error) {
+    store.notif.promos = previous;
+    haptic("error");
+    throw error;
+  }
+}
 
 // Favorites are stored as lightweight product snapshots so the Favorites screen
 // can render without re-fetching the catalog.
@@ -196,9 +226,18 @@ export function removeCard(id) {
 }
 
 /* ---------------- boot ---------------- */
-function applyServerLanguage() {
-  // If the user never picked a language locally, follow the profile default.
-  if (!saved.lang && store.me && store.me.language) store.lang = store.me.language;
+async function applyServerLanguage() {
+  // With no local choice, follow Telegram via the server profile (unknown
+  // Telegram languages already fall back to Uzbek). A previous explicit local
+  // choice is synchronized back so chat notifications use the same language.
+  if (!store.langExplicit && store.me && store.me.language) {
+    store.lang = store.me.language;
+    return;
+  }
+  if (store.langExplicit && store.me && store.me.language !== store.lang) {
+    try { store.me = await ds.updateMe({ language: store.lang }); }
+    catch { /* the visible local choice remains usable while offline */ }
+  }
 }
 
 function newVisitId() {
@@ -221,7 +260,8 @@ export async function boot() {
   try {
     store.me = await ensureSession();
     store.browser = false;
-    applyServerLanguage();
+    store.notif.promos = store.me.broadcastOptedIn;
+    await applyServerLanguage();
     // One event per Mini App page boot. Best-effort keeps analytics from ever
     // becoming an availability dependency for the customer experience.
     ds.trackVisit(clientVisitId).catch(() => {});
@@ -265,7 +305,20 @@ async function bootBrowser() {
     else if (e instanceof ClosedError) store.apiNote = "ok";
     else store.apiNote = "error";
   }
-  if (!store.me) store.me = { id: 0, telegramId: 0, name: "", phone: "", language: store.lang, photoUrl: "", points: 0 };
+  if (!store.me) store.me = {
+    id: 0,
+    telegramId: 0,
+    name: "",
+    firstName: "",
+    lastName: "",
+    phone: "",
+    language: store.lang,
+    photoUrl: "",
+    points: 0,
+    profileComplete: false,
+    profileMissing: ["first_name", "last_name", "phone", "confirmation"],
+    broadcastOptedIn: true,
+  };
   store.bootState = "ready";
   warmData();
 }
@@ -550,16 +603,33 @@ export async function reorder(order) {
 }
 
 /* ---------------- addresses ---------------- */
+let addressLoadRequest = 0;
+
 export async function loadAddresses() {
+  const requestId = ++addressLoadRequest;
   store.addressesLoading = true;
+  store.addressesError = "";
   try {
-    store.addresses = await ds.getAddresses();
+    const addresses = await ds.getAddresses();
+    if (requestId !== addressLoadRequest) return false;
+    store.addresses = addresses;
+    store.addressesLoaded = true;
     if (!store.selectedAddressId || !store.addresses.some((a) => a.id === store.selectedAddressId)) {
       const def = store.addresses.find((a) => a.isDefault) || store.addresses[0];
       store.selectedAddressId = def ? def.id : null;
     }
-  } catch { /* keep previous */ }
-  finally { store.addressesLoading = false; }
+    return true;
+  } catch (error) {
+    // Existing screens keep their last known list; callers that need a fresh
+    // record (such as an edit deep-link) can render a recoverable error.
+    if (requestId === addressLoadRequest) {
+      store.addressesError = (error && error.message) || "load_failed";
+    }
+    return false;
+  }
+  finally {
+    if (requestId === addressLoadRequest) store.addressesLoading = false;
+  }
 }
 
 export function selectAddress(id) {
@@ -591,7 +661,15 @@ export async function saveAddress(form) {
   let rec;
   if (form.id) rec = await ds.updateAddress(form.id, body);
   else { body.make_default = store.addresses.length === 0; rec = await ds.createAddress(body); }
-  await loadAddresses();
+  const refreshed = await loadAddresses();
+  if (!refreshed) {
+    // The write succeeded; keep the returned canonical record locally so a
+    // transient list-refresh failure cannot send checkout back into address
+    // creation and duplicate the same location.
+    const index = store.addresses.findIndex((address) => address.id === rec.id);
+    if (index >= 0) store.addresses[index] = rec;
+    else store.addresses.unshift(rec);
+  }
   store.selectedAddressId = rec.id;
   haptic("success");
   return rec;
@@ -599,8 +677,16 @@ export async function saveAddress(form) {
 
 export async function removeAddress(id) {
   await ds.deleteAddress(id);
-  if (store.selectedAddressId === id) store.selectedAddressId = null;
+  const index = store.addresses.findIndex((address) => address.id === id);
+  if (index >= 0) store.addresses.splice(index, 1);
+  if (store.selectedAddressId === id || !store.addresses.some((address) => address.id === store.selectedAddressId)) {
+    const fallback = store.addresses.find((address) => address.isDefault) || store.addresses[0];
+    store.selectedAddressId = fallback ? fallback.id : null;
+  }
+  // The local removal is already truthful if this refresh fails; loadAddresses
+  // preserves it and exposes a retryable stale-data warning.
   await loadAddresses();
+  haptic("success");
 }
 
 export async function setDefaultAddress(id) {

@@ -28,7 +28,6 @@
       <div><div class="a">{{ t("closedT", store.lang) }}</div><div class="b">{{ t("closedS", store.lang) }}</div></div>
     </div>
 
-    <template v-else>
       <!-- category chips -->
       <SecHead :title="t('categories', store.lang)" :link="t('seeAll', store.lang)" @link="router.push('/categories')" />
       <div class="chips">
@@ -97,7 +96,6 @@
           <FoodCard v-for="f in feed" :key="f.id" :f="f" />
         </div>
       </template>
-    </template>
     <div style="height:8px"></div>
   </div>
 </template>

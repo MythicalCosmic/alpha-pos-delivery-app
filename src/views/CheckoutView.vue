@@ -9,7 +9,7 @@
       </div>
 
       <!-- order summary -->
-      <div class="lbl">{{ t("yourOrder", store.lang) }}<span class="ed press" @click="router.back()">{{ t("edit", store.lang) }}</span></div>
+      <div class="lbl">{{ t("yourOrder", store.lang) }}<button class="ed press" type="button" @click="router.back()">{{ t("edit", store.lang) }}</button></div>
       <div class="co-summary">
         <div class="thumbs">
           <div v-for="(it, i) in store.cart.slice(0, 3)" :key="i" class="th">
@@ -34,10 +34,28 @@
             <span class="tag"><Icon name="pin" :size="12" /> {{ selectedAddress.label || t("home2", store.lang) }}</span>
             <div class="ad">{{ selectedAddress.line }}</div>
             <div v-if="addrDetail" class="ad2">{{ addrDetail }}</div>
-            <div class="ch press" @click="router.push('/addresses')">{{ t("change", store.lang) }}</div>
+            <button class="ch press" type="button" @click="router.push('/addresses')">{{ t("change", store.lang) }}</button>
           </div>
         </div>
-        <button v-else class="addbtn press" @click="router.push('/address/edit')">
+        <div v-if="selectedAddress && store.addressesError" class="location-warning location-warning--stale" role="alert">
+          <Icon name="info" :size="18" />
+          <span>{{ t("addressesStale", store.lang) }}</span>
+          <button class="press" type="button" :disabled="store.addressesLoading" @click="retryAddresses">{{ t("tryAgain", store.lang) }}</button>
+        </div>
+        <div v-if="selectedAddress && !selectedAddressIsDeliverable" class="location-warning">
+          <Icon name="info" :size="18" />
+          <span>{{ t("preciseLocationNeeded", store.lang) }}</span>
+          <button class="press" @click="pinSelectedAddress">{{ t("addPreciseLocation", store.lang) }}</button>
+        </div>
+        <div v-else-if="!selectedAddress && (!store.addressesLoaded || store.addressesLoading) && !store.addressesError" class="address-loading" aria-live="polite">
+          <span class="spinner-address" aria-hidden="true"></span>{{ t("addressesLoading", store.lang) }}
+        </div>
+        <div v-else-if="!selectedAddress && store.addressesError" class="location-warning location-warning--error" role="alert">
+          <Icon name="info" :size="18" />
+          <span>{{ t("addressesLoadFailed", store.lang) }}</span>
+          <button class="press" type="button" :disabled="store.addressesLoading" @click="retryAddresses">{{ t("tryAgain", store.lang) }}</button>
+        </div>
+        <button v-else-if="!selectedAddress" class="addbtn press" type="button" @click="addDeliveryAddress">
           <Icon name="plus" :size="20" /> {{ t("addAddr2", store.lang) }}
         </button>
         <div class="note-in">
@@ -120,7 +138,7 @@ import TopBar from "../components/TopBar.vue";
 import MiniMap from "../components/MiniMap.vue";
 import SwitchToggle from "../components/SwitchToggle.vue";
 import OrderHelp from "../components/OrderHelp.vue";
-import { store, selectedAddress, requestQuote, submitOrder, loadLoyalty, loadProducts, cartSubtotal, cartDelivery, cartTotalEstimate } from "../store.js";
+import { store, selectedAddress, selectedAddressIsDeliverable, profileComplete, requestQuote, submitOrder, loadAddresses, loadLoyalty, loadProducts, cartSubtotal, cartDelivery, cartTotalEstimate } from "../store.js";
 import { ClosedError, ConflictError, ApiError } from "../api/index.js";
 import { t, cf } from "../data/strings.js";
 import { foodName, sum } from "../data/foods.js";
@@ -180,7 +198,8 @@ const addrDetail = computed(() => {
 
 const canSubmit = computed(() =>
   store.cart.length > 0 &&
-  !(orderType.value === "DELIVERY" && !selectedAddress.value) &&
+  profileComplete.value &&
+  !(orderType.value === "DELIVERY" && !selectedAddressIsDeliverable.value) &&
   !!store.quote &&
   !store.quoting &&
   !store.quoteError &&
@@ -188,12 +207,38 @@ const canSubmit = computed(() =>
   !store.catalogClosed
 );
 
+function addDeliveryAddress() {
+  router.push({ name: "address-edit", query: { return: "/checkout" } });
+}
+
+function pinSelectedAddress() {
+  if (!selectedAddress.value) return addDeliveryAddress();
+  router.push({
+    name: "address-edit",
+    params: { id: selectedAddress.value.id },
+    query: { return: "/checkout" },
+  });
+}
+
+function retryAddresses() {
+  void loadAddresses();
+}
+
 function reprice() {
   if (!store.cart.length) return;
   requestQuote({ orderType: orderType.value, tip: tip.value, pointsUsed: pointsUsed.value });
 }
 
 async function place() {
+  if (!profileComplete.value) {
+    router.replace({ name: "account-setup", query: { return: "/checkout" } });
+    return;
+  }
+  if (orderType.value === "DELIVERY" && !selectedAddressIsDeliverable.value) {
+    if (selectedAddress.value) pinSelectedAddress();
+    else addDeliveryAddress();
+    return;
+  }
   if (!canSubmit.value || submitting.value) return;
   submitError.value = "";
   submitNeedsSupport.value = false;
@@ -226,6 +271,13 @@ async function place() {
       submitError.value = t(noCashier ? "noCashierHelp" : "closedT", store.lang);
       submitNeedsSupport.value = noCashier;
     }
+    else if (e instanceof ConflictError && e.code === "profile_required") {
+      router.replace({ name: "account-setup", query: { return: "/checkout" } });
+    }
+    else if (e instanceof ConflictError && e.code === "location_required") {
+      if (selectedAddress.value) pinSelectedAddress();
+      else addDeliveryAddress();
+    }
     else if (e instanceof ConflictError) submitError.value = cf(e.code, store.lang);
     else if (e instanceof ApiError && e.httpStatus === 422 && e.errors && e.errors.address_id) submitError.value = t("needAddress", store.lang);
     else if (e instanceof ApiError && e.httpStatus === 404) submitError.value = t("needAddress", store.lang);
@@ -240,7 +292,12 @@ async function place() {
 
 onMounted(async () => {
   if (store.cart.length === 0) { router.replace("/cart"); return; }
+  if (!profileComplete.value && !store.browser) {
+    router.replace({ name: "account-setup", query: { return: "/checkout" } });
+    return;
+  }
   if (!store.loyalty) loadLoyalty();
+  if (!store.addressesLoaded) await loadAddresses();
   await loadProducts();
   reprice();
 });
@@ -252,6 +309,8 @@ watch(loyaltySpendingOn, (enabled) => {
 
 <style scoped>
 .addr-mini { width: 92px; flex: none; border-radius: 0; }
+.co2 .lbl .ed { min-width: 44px; min-height: 44px; margin: -14px -8px -14px 0; padding: 0 8px; border-radius: 10px; }
+.addr-body .ch { display: inline-flex; min-height: 44px; align-items: center; margin: -5px 0 -10px -10px; padding: 0 10px; border-radius: 10px; }
 .addr-body .ad2 { font-size: 11px; color: var(--text-faint); font-weight: 700; margin-top: 4px; }
 .thumbs .th img { width: 100%; height: 100%; object-fit: cover; }
 .pay-card.disabled, .pay-card:disabled { opacity: .55; }
@@ -262,7 +321,14 @@ watch(loyaltySpendingOn, (enabled) => {
 .totals .earn { text-align: right; font-size: 12px; font-weight: 800; color: var(--accent-2); margin-top: 6px; }
 .cart-warn { display: flex; align-items: center; gap: 8px; margin-top: 14px; padding: 12px 14px; border-radius: 14px; background: color-mix(in srgb, #ef5b6e 14%, var(--surface)); border: 1px solid color-mix(in srgb, #ef5b6e 30%, transparent); color: #ef5b6e; font-weight: 700; font-size: 12.5px; }
 .addbtn { width: 100%; height: 54px; border-radius: 16px; border: 1.5px dashed var(--hairline-strong); display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 800; font-size: 14px; color: var(--accent); }
+.location-warning { display: grid; grid-template-columns: 20px 1fr auto; gap: 9px; align-items: center; margin-top: 10px; padding: 11px 12px; border: 1px solid color-mix(in srgb, #e0a02a 28%, transparent); border-radius: 14px; background: color-mix(in srgb, #e0a02a 10%, var(--surface)); color: #c78815; font-size: 11.5px; line-height: 1.35; font-weight: 750; }
+.location-warning button { min-height: 40px; padding: 0 10px; border-radius: 11px; background: color-mix(in srgb, #e0a02a 15%, var(--surface)); color: currentColor; font-size: 11.5px; font-weight: 850; }
+.location-warning--error { border-color: color-mix(in srgb, #ef5b6e 28%, transparent); background: color-mix(in srgb, #ef5b6e 10%, var(--surface)); color: #ef5b6e; }
+.location-warning--stale { margin-bottom: 0; }
+.address-loading { min-height: 54px; display: flex; align-items: center; justify-content: center; gap: 9px; border: 1px solid var(--hairline); border-radius: 16px; background: var(--surface); color: var(--text-dim); font-size: 12.5px; font-weight: 750; }
+.spinner-address { width: 19px; height: 19px; border-radius: 50%; border: 2.5px solid var(--hairline); border-top-color: var(--accent); animation: cspin .8s linear infinite; }
 .cta:disabled { opacity: .55; }
 .spinner-sm { width: 20px; height: 20px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,.4); border-top-color: #fff; animation: cspin .8s linear infinite; }
 @keyframes cspin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner-sm, .spinner-address { animation: none; } }
 </style>

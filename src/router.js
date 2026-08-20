@@ -1,5 +1,6 @@
 /* ===== Smart Food — routing ===== */
 import { createRouter, createWebHashHistory } from "vue-router";
+import { store } from "./store.js";
 
 const routes = [
   { path: "/", redirect: "/home" },
@@ -11,6 +12,7 @@ const routes = [
   { path: "/food/:id", name: "detail", component: () => import("./views/DetailView.vue"), meta: { pushed: true, hideNav: true } },
   { path: "/cart", name: "cart", component: () => import("./views/CartView.vue"), meta: { pushed: true, hideNav: true } },
   { path: "/checkout", name: "checkout", component: () => import("./views/CheckoutView.vue"), meta: { pushed: true, hideNav: true } },
+  { path: "/checkout/account", name: "account-setup", component: () => import("./views/AccountSetupView.vue"), meta: { pushed: true, hideNav: true } },
   { path: "/tracking/:id", name: "tracking", component: () => import("./views/TrackingView.vue"), meta: { pushed: true, hideNav: true } },
   { path: "/loyalty", name: "loyalty", component: () => import("./views/LoyaltyView.vue"), meta: { pushed: true } },
   { path: "/themes", name: "themes", component: () => import("./views/ThemesView.vue"), meta: { pushed: true, hideNav: true } },
@@ -28,4 +30,21 @@ export const router = createRouter({
   history: createWebHashHistory(),
   routes,
   scrollBehavior() { return { top: 0 }; },
+});
+
+router.beforeEach((to) => {
+  if (
+    to.name === "checkout" &&
+    store.bootState === "ready" &&
+    !store.browser &&
+    store.me &&
+    !store.me.profileComplete
+  ) {
+    return {
+      name: "account-setup",
+      query: { return: to.fullPath },
+      replace: true,
+    };
+  }
+  return true;
 });

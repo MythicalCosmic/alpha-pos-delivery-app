@@ -401,10 +401,16 @@ export function normalizeMe(d) {
     id: d.id,
     telegramId: d.telegram_id,
     name: d.name || "",
+    firstName: d.first_name || "",
+    lastName: d.last_name || "",
     phone: d.phone || "",
     language: d.language || "uz",
     photoUrl: d.photo_url || "",
     points: (d.loyalty && d.loyalty.points) || 0,
+    profileComplete: !!d.profile_complete,
+    profileMissing: Array.isArray(d.profile_missing) ? d.profile_missing : [],
+    profileConfirmedAt: d.profile_confirmed_at || null,
+    broadcastOptedIn: d.broadcast_opted_in !== false,
   };
 }
 

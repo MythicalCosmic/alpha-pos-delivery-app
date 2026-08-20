@@ -48,7 +48,7 @@ All routes except `/auth` and public managed-media GETs require the customer bea
 | POST | `/auth` | Telegram `initData` login |
 | POST | `/auth/logout` | invalidate the current session |
 | POST | `/analytics/visit` | best-effort idempotent boot event with `{client_visit_id: UUID}` |
-| GET/PATCH | `/me` | profile and language |
+| GET/PATCH | `/me` | confirmed identity, language, and broadcast opt-in |
 | GET | `/config` | store state, delivery rules, loyalty flags, support |
 | GET | `/catalog/categories` | customer-visible categories |
 | GET | `/catalog/products` | customer-visible products; `?category_id&tag&q&lang` |
@@ -60,8 +60,8 @@ All routes except `/auth` and public managed-media GETs require the customer bea
 | GET | `/orders/:id` | owned order detail |
 | GET | `/orders/:id/track` | polling contract |
 | POST | `/orders/:id/cancel` | cancel raw `PENDING` order only |
-| GET/POST | `/addresses` | list/create |
-| PUT/DELETE | `/addresses/:id` | update/delete |
+| GET/POST | `/addresses` | list/create; create requires line and coordinates |
+| PUT/DELETE | `/addresses/:id` | update/delete; resulting address must retain coordinates |
 | PUT | `/addresses/:id/default` | set default |
 | GET | `/geo/reverse` | `?lat&lng&lang` |
 | GET | `/geo/forward` | `?q&lang&limit` |
@@ -104,6 +104,38 @@ Earning uses `loyalty_earn_per` server-side: one point per configured UZS of sub
 
 Smart Club reward redemption does not depend on `loyalty_point_value`; it always uses a reward's `points_cost`.
 
+## Profile, language, and notification preference
+
+`GET /me` returns separate `first_name`/`last_name`, canonical `phone`,
+`profile_complete`, `profile_missing`, `profile_confirmed_at`,
+`broadcast_opted_in`, and `telegram_reachable` in addition to the resolved `name`,
+language, photo, and points.
+
+Checkout requires non-empty separate names, a canonical Uzbekistan phone
+(`998` plus nine digits), and explicit confirmation. Send the resulting values in
+one atomic PATCH:
+
+```json
+{
+  "first_name": "Ali",
+  "last_name": "Valiyev",
+  "phone": "998901234567",
+  "confirm": true
+}
+```
+
+Changing either name or phone invalidates the previous confirmation unless the
+same request reconfirms. `POST /orders` returns 422 `profile_required` when the
+account is incomplete and `profile_phone_mismatch` if a supplied compatibility
+phone differs from `/me.phone`.
+
+Until the customer explicitly chooses a language, login follows Telegram
+`language_code`; unknown/missing codes become Uzbek. `PATCH /me {language}`
+persists an explicit `uz|ru|en` choice so later Telegram login does not replace
+it. `PATCH /me {broadcast_opted_in:boolean}` is the server-owned Promotions
+preference. Order-status messages remain operational and are not controlled by
+that switch.
+
 ## Exact catalog availability
 
 Categories are returned only when their Telegram shadow is published and selling and the POS category is not deleted.
@@ -115,6 +147,10 @@ Products are returned/openable only when:
 - its Telegram category shadow exists, is published, and is selling.
 
 List responses silently omit anything else. Detail returns 404 `Product not found`. Quote and create repeat the same validation, so cached cart data cannot bypass a stop. `available` is normally true on returned product rows because filtering happened first.
+
+Catalog category/list/detail routes remain authenticated and available while
+`config.enabled` is false. The UI renders the current menu under closed-ordering
+copy; `bot_off` applies to quote and genuinely new order creation.
 
 Product/category IDs are canonical POS IDs. Size, topping-group, topping, reward, redemption, banner, and Smart Food order IDs are Smart Food-local.
 
@@ -176,7 +212,12 @@ Expected 400 messages cover insufficient points, stock exhaustion, reached limit
 
 ## Media contract and UI failure behavior
 
-Managed product, banner, and reward uploads are operator-only. The server accepts content whose bytes identify JPEG, PNG, or WebP and whose size is at most 8 MB. It does not enforce pixel dimensions; the admin recommends 1200×900 (product), 1440×720 (banner), and 800×800 (reward), with client-side crop warnings.
+Managed product, banner, reward, and broadcast uploads are operator-only. The
+server fully decodes actual JPEG, PNG, or WebP content up to 8 MB. Recommended
+sizes are 1200×900 (product), 1440×720 (banner), 800×800 (reward), and 1200×628
+(broadcast). Broadcast photos additionally enforce Telegram geometry
+(`width + height <= 10000`, aspect ratio at most 20:1); WebP is converted to JPEG
+and must remain under 8 MB after conversion.
 
 Managed URLs are immutable UUID filenames and public GET responses carry one-year immutable caching plus `nosniff`. Unknown/unsafe filenames or missing files return 404. A storage write failure returns 503 with safe retry copy and does not replace the database URL; replacing/removing cleans up only service-managed files, never arbitrary external URLs.
 
@@ -193,7 +234,31 @@ The cart body uses `{product_id, size_id?, topping_ids?, quantity}`. Server quot
 
 Create and persist a UUID `client_order_id` before the first order request. Retry the identical normalized payload with the same UUID after timeout/reload; a first create returns 201 and a replay returns the original order with 200. Reusing it for changed checkout data returns 409 `idempotency_conflict`.
 
+DELIVERY requires an owned address with a non-blank line and valid pinned
+coordinates. Address create/update validates text lengths, finite latitude in
+`[-90,90]`, and longitude in `[-180,180]`. A legacy row without a pin returns
+`location_required` at checkout. Successful creation freezes both
+`address_text` and `address_location`; these snapshots remain authoritative after
+the saved address changes or is deleted.
+
 New orders can return HTTP 200 closed reason `no_cashier`; browsing and quote remain available. Render `effective_status`, not raw `status`, because dispatched Smart Food orders follow the linked POS state through `PREPARING`, `READY`, `COMPLETED`, or `CANCELED`.
+
+Placed, dispatched, preparing, ready, completed, canceled, and rejected Telegram
+updates are written to a localized durable outbox. The isolated message worker
+preserves per-order event order and retries delivery; WebSocket plus `/track`
+remain the authoritative customer state.
+
+## Address UX and recovery
+
+The shipped client preserves a last-known address list when refresh fails and
+shows an explicit retryable stale warning. A successful create/update keeps the
+returned canonical record locally even if its follow-up list refresh fails, while
+delete updates local truth before attempting refresh. Deep-linked edits show a
+recoverable load error instead of silently opening an empty form; saves and
+deletes keep visible progress/error state. Map selection can confirm a coordinate
+even if reverse geocoding is delayed or unavailable, falling back to formatted
+text or coordinates. Address and identity forms protect dirty work on browser,
+Telegram, and in-app navigation.
 
 ## Deployment checklist
 
@@ -201,5 +266,5 @@ New orders can return HTTP 200 closed reason `no_cashier`; browsing and quote re
 - Set nginx `BACKEND_ORIGIN=https://pos.78.111.90.65.nip.io` (or the deployment's POS origin).
 - Set backend `CUSTOMER_WEBAPP_URL=https://delivery.78.111.90.65.nip.io/webapp/` and synchronize the Telegram menu button to the same URL.
 - Attach the webapp as `delivery-webapp` and Django as `alpha-web` on the shared `edge` network; Caddy terminates TLS.
-- Run the backend `bot` and `smartfood_dispatch` services, apply migrations, configure `CUSTOMER_BOT_TOKEN`, enable the bot in runtime config, and set `SMARTFOOD_AUTO_DISPATCH=true` for automatic production dispatch.
+- Run the backend `bot`, `smartfood_dispatch`, and `smartfood_messages` services, apply migrations, configure `CUSTOMER_BOT_TOKEN`, enable ordering in runtime config, and set `SMARTFOOD_AUTO_DISPATCH=true` for automatic production dispatch. The webhook and poller are mutually exclusive update modes; both immediately offer the Mini App, remove the retired contact keyboard, and keep catalog entry available while ordering is closed.
 - Verify `/healthz`, `/api/smartfood/config`, managed-media GETs, Telegram auth, and the public `/webapp/` route after deploy.

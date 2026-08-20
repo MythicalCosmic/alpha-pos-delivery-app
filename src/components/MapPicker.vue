@@ -1,26 +1,39 @@
 <template>
   <teleport to="body">
-    <div class="mp-overlay">
+    <div
+      ref="dialogEl"
+      class="mp-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="map-picker-title"
+      :aria-describedby="loadError ? undefined : 'map-picker-hint'"
+      tabindex="-1"
+      @keydown="onDialogKeydown"
+    >
+      <h2 id="map-picker-title" class="sr-only">{{ t("chooseOnMap", lang) }}</h2>
       <!-- top bar: close + search -->
       <div class="mp-top">
-        <button class="mp-x press" @click="$emit('close')"><Icon name="back" /></button>
+        <button ref="closeButton" class="mp-x press" type="button" :aria-label="t('back', lang)" @click="closeDialog"><Icon name="back" /></button>
         <div class="mp-search">
           <Icon name="search" :size="18" />
+          <label class="sr-only" for="map-address-search">{{ t("searchAddress", lang) }}</label>
           <input
+            id="map-address-search"
+            ref="searchInput"
             v-model="query"
             :placeholder="t('searchAddress', lang)"
             enterkeyhint="search"
             @keyup.enter="doSearch"
           />
-          <button v-if="query.trim()" class="mp-go press" @click="doSearch">{{ t("searchBtn", lang) }}</button>
+          <button v-if="query.trim()" class="mp-go press" type="button" @click="doSearch">{{ t("searchBtn", lang) }}</button>
         </div>
       </div>
 
       <!-- the map -->
-      <div ref="mapEl" class="mp-map"></div>
+      <div ref="mapEl" class="mp-map" aria-hidden="true"></div>
 
       <!-- helper hint -->
-      <div v-if="!loadError" class="mp-hint">{{ t("tapHint", lang) }}</div>
+      <div v-if="!loadError" id="map-picker-hint" class="mp-hint">{{ t("tapHint", lang) }}</div>
 
       <!-- fixed center pin (the map moves under it; a click also drops it) -->
       <div v-if="!loadError" class="mp-pin" :class="{ lifted: dragging }">
@@ -29,7 +42,7 @@
       </div>
 
       <!-- locate-me -->
-      <button v-if="!loadError" class="mp-locate press" :class="{ busy: locating }" :disabled="locating" @click="locateMe">
+      <button v-if="!loadError" class="mp-locate press" type="button" :class="{ busy: locating }" :disabled="locating" :aria-label="t('useMyLoc', lang)" @click="locateMe">
         <Icon name="target" :size="22" />
       </button>
 
@@ -37,15 +50,15 @@
       <div class="mp-sheet">
         <template v-if="loadError">
           <div class="mp-errbox"><Icon name="pin" :size="20" /> {{ t("mapError", lang) }}</div>
-          <button class="mp-confirm press" @click="$emit('close')">{{ t("back", lang) }}</button>
+          <button class="mp-confirm press" type="button" @click="closeDialog">{{ t("back", lang) }}</button>
         </template>
         <template v-else>
           <div class="mp-row">
             <span class="mp-badge" :class="badgeClass"><span class="dot"></span>{{ badgeLabel }}</span>
-            <span v-if="status" class="mp-status">{{ status }}</span>
+            <span v-if="status" class="mp-status" role="status" aria-live="polite">{{ status }}</span>
           </div>
           <div class="mp-addr">{{ display || (resolving ? t("locating", lang) : t("moveMap", lang)) }}</div>
-          <button class="mp-confirm press" :disabled="!canConfirm" @click="confirm">
+          <button class="mp-confirm press" type="button" :disabled="!canConfirm" @click="confirm">
             {{ t("confirmLoc", lang) }}
           </button>
         </template>
@@ -55,7 +68,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, nextTick, onMounted, onBeforeUnmount } from "vue";
 import Icon from "./Icon.js";
 import { store } from "../store.js";
 import { t } from "../data/strings.js";
@@ -69,10 +82,18 @@ const props = defineProps({
 const emit = defineEmits(["close", "confirm"]);
 
 const lang = computed(() => store.lang);
+const dialogEl = ref(null);
+const closeButton = ref(null);
+const searchInput = ref(null);
 const mapEl = ref(null);
 let map = null;
 let revTimer = null;
 let destroyed = false;
+let restoreFocus = null;
+let appRoot = null;
+let appWasInert = false;
+let appAriaHidden = null;
+let bodyOverflow = "";
 
 const dragging = ref(false);
 const resolving = ref(false);
@@ -95,6 +116,67 @@ const badgeClass = computed(() => (isExact.value ? "ok" : "warn"));
 const badgeLabel = computed(() => (isExact.value ? t("precise", lang.value) : t("approximate", lang.value)));
 // Confirm is enabled as soon as a point is chosen — the address can keep resolving.
 const canConfirm = computed(() => !!picked.value);
+
+function closeDialog() {
+  emit("close");
+}
+
+function focusableElements() {
+  if (!dialogEl.value) return [];
+  return Array.from(dialogEl.value.querySelectorAll(
+    'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+  )).filter((element) => !element.closest('[aria-hidden="true"]'));
+}
+
+function onDialogKeydown(event) {
+  if (event.key === "Escape") {
+    event.preventDefault();
+    closeDialog();
+    return;
+  }
+  if (event.key !== "Tab") return;
+  const items = focusableElements();
+  if (!items.length) {
+    event.preventDefault();
+    dialogEl.value?.focus();
+    return;
+  }
+  const first = items[0];
+  const last = items[items.length - 1];
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
+}
+
+function isolateBackground() {
+  restoreFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  appRoot = document.getElementById("app");
+  if (appRoot) {
+    appWasInert = appRoot.inert;
+    appAriaHidden = appRoot.getAttribute("aria-hidden");
+    appRoot.inert = true;
+    appRoot.setAttribute("aria-hidden", "true");
+  }
+  bodyOverflow = document.body.style.overflow;
+  document.body.style.overflow = "hidden";
+}
+
+function restoreBackground() {
+  if (appRoot) {
+    appRoot.inert = appWasInert;
+    if (appAriaHidden === null) appRoot.removeAttribute("aria-hidden");
+    else appRoot.setAttribute("aria-hidden", appAriaHidden);
+  }
+  document.body.style.overflow = bodyOverflow;
+  const target = restoreFocus;
+  queueMicrotask(() => {
+    if (target?.isConnected) target.focus();
+  });
+}
 
 // Set the chosen point immediately, then reverse-geocode it (debounced).
 function geocodeAt(coords) {
@@ -172,6 +254,11 @@ function confirm() {
 }
 
 onMounted(async () => {
+  isolateBackground();
+  await nextTick();
+  // Keep the map visible on mobile; keyboard users can Tab into search without
+  // forcing the soft keyboard open for every touch user.
+  closeButton.value?.focus();
   try {
     const ymaps = await loadYmaps(lang.value);
     if (destroyed) return;
@@ -203,11 +290,13 @@ onBeforeUnmount(() => {
   destroyed = true;
   clearTimeout(revTimer);
   if (map) { try { map.destroy(); } catch (e) { /* ignore */ } map = null; }
+  restoreBackground();
 });
 </script>
 
 <style scoped>
 .mp-overlay { position: fixed; inset: 0; z-index: 4000; background: var(--bg, #0a0818); display: flex; flex-direction: column; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .mp-map { position: absolute; inset: 0; width: 100%; height: 100%; }
 
 .mp-top { position: absolute; top: 0; left: 0; right: 0; z-index: 10; display: flex; gap: 10px; padding: calc(env(safe-area-inset-top, 0px) + 12px) 14px 12px; }
