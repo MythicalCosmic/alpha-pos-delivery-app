@@ -1,6 +1,7 @@
 /* ===== Smart Food — routing ===== */
 import { createRouter, createWebHashHistory } from "vue-router";
 import { store } from "./store.js";
+import { completedAccountRedirect } from "./onboarding.js";
 
 const routes = [
   { path: "/", redirect: "/home" },
@@ -33,6 +34,15 @@ export const router = createRouter({
 });
 
 router.beforeEach((to) => {
+  const completedTarget = completedAccountRedirect({
+    bootState: store.bootState,
+    routeName: to.name,
+    customer: store.me,
+    returnTo: to.query.return,
+  });
+  if (completedTarget) {
+    return { path: completedTarget, replace: true };
+  }
   if (
     to.name === "checkout" &&
     store.bootState === "ready" &&

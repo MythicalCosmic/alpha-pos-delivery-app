@@ -57,6 +57,7 @@ import { store, theme, cartCount, cartSubtotal, boot, retryBoot } from "./store.
 import { t } from "./data/strings.js";
 import { sum } from "./data/foods.js";
 import { initTelegram, applyTgChrome, showBackButton, hideBackButton } from "./telegram.js";
+import { completedAccountRedirect } from "./onboarding.js";
 
 const route = useRoute();
 const router = useRouter();
@@ -89,6 +90,22 @@ watch(() => route.fullPath, async () => {
 
 // Telegram: theme chrome + native back button
 watch(theme, (v) => applyTgChrome(v));
+// Telegram may restore the exact hash that was open when the Mini App closed.
+// Once boot has loaded the server profile, leave a stale setup URL immediately
+// if this customer already completed onboarding on any previous session.
+watch(
+  () => [store.bootState, route.name, store.me?.profileComplete, route.query.return],
+  () => {
+    const target = completedAccountRedirect({
+      bootState: store.bootState,
+      routeName: route.name,
+      customer: store.me,
+      returnTo: route.query.return,
+    });
+    if (target) void router.replace(target);
+  },
+  { immediate: true }
+);
 watch(
   () => [route.meta.pushed, ready.value],
   ([pushed, isReady]) => {

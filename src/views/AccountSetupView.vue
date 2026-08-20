@@ -90,6 +90,7 @@ import TopBar from "../components/TopBar.vue";
 import { ApiError } from "../api/index.js";
 import { t } from "../data/strings.js";
 import { useDirtyGuard } from "../dirtyGuard.js";
+import { accountSetupReturnPath } from "../onboarding.js";
 import { displayUzPhone, isUzPhone, normalizeUzPhone } from "../phone.js";
 import { deliverableAddresses, loadAddresses, store, updateProfile } from "../store.js";
 
@@ -122,8 +123,7 @@ function validate() {
 }
 
 function safeReturn() {
-  const target = typeof route.query.return === "string" ? route.query.return : "/checkout";
-  return target.startsWith("/") && !target.startsWith("//") ? target : "/checkout";
+  return accountSetupReturnPath(route.query.return);
 }
 
 async function save() {
